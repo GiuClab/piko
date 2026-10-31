@@ -1,0 +1,53 @@
+name: Video UI bug
+description: Report a reproducible problem with this fork's video controls.
+title: "[Video UI] "
+body:
+  - type: markdown
+    attributes:
+      value: Read release compatibility and known issues. Never include credentials, tokens or signing keys.
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: X, Morphe and patch bundle versions
+    validations:
+      required: true
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Affected feature
+      options:
+        - Vertical video switching
+        - Horizontal seeking or unwanted exit
+        - Play/pause or double-tap likes
+        - Follow state or request
+        - Layout or other controls
+        - Patching or installation
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps, expected behavior and actual result
+      description: Say whether every video is affected and whether this was an update.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or recording (optional)
+      description: Remove personal information and credentials first.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked compatibility and known issues.
+          required: true
+        - label: I selected only this fork's Piko source for X.
+          required: true
