@@ -52,10 +52,10 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
         document("res/layout/immersive_media_player_chrome_portrait.xml").use { editor ->
             fun node(id: String) = editor.childNodes.findElementByAttributeValueOrThrow("android:id", "@id/$id") as Element
             val actions = node("tweet_inline_actions")
-            actions.setAttribute("android:layout_width", "72dp")
+            actions.setAttribute("android:layout_width", "56dp")
             actions.setAttribute("android:layout_height", "wrap_content")
             actions.setAttribute("android:layout_marginHorizontal", "0dp")
-            actions.setAttribute("android:layout_marginEnd", "4dp")
+            actions.setAttribute("android:layout_marginEnd", "0dp")
             actions.setAttribute("android:layout_marginBottom", "16dp")
             actions.removeAttribute("app:layout_constraintStart_toStartOf")
             actions.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
@@ -82,6 +82,8 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
 
             node("tweet_header").setAttribute("layout", "@layout/piko_video_header")
             val seek = node("seekbar")
+            seek.setAttribute("android:layout_width", "0dp")
+            seek.removeAttribute("app:layout_constraintEnd_toStartOf")
             seek.removeAttribute("app:layout_constraintStart_toStartOf")
             seek.setAttribute("app:layout_constraintStart_toEndOf", "@id/video_play_toggle")
             seek.removeAttribute("app:layout_constraintEnd_toEndOf")
@@ -89,6 +91,10 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             seek.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
             seek.setAttribute("android:layout_marginHorizontal", "0dp")
             seek.setAttribute("android:paddingHorizontal", "0dp")
+            for (edge in listOf("Left", "Right", "Start", "End")) {
+                seek.setAttribute("android:layout_margin$edge", "0dp")
+                seek.setAttribute("android:padding$edge", "0dp")
+            }
             // The native widget contains both its progress track and time label.
             node("video_play_toggle").apply {
                 setAttribute("android:layout_width", "48dp")

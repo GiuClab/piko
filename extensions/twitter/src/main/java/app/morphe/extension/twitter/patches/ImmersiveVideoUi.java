@@ -64,7 +64,7 @@ public final class ImmersiveVideoUi {
         VideoFollowControl.ensure(bar);
         ensureMoreButton(bar);
         VideoActionIcon.install(bar);
-        int width = View.resolveSize(dp(bar, 72), widthSpec);
+        int width = View.resolveSize(dp(bar, 56), widthSpec);
         int count = 0;
         for (int i = 0; i < bar.getChildCount(); i++) {
             if (bar.getChildAt(i).getVisibility() == View.VISIBLE) count++;
@@ -120,7 +120,7 @@ public final class ImmersiveVideoUi {
             ImageView icon = (ImageView) action.getClass().getMethod("getIconView").invoke(action);
             View count = (View) action.getClass().getMethod("getTextView").invoke(action);
             ViewGroup iconFrame = (ViewGroup) icon.getParent();
-            int width = View.resolveSize(dp(action, 72), widthSpec);
+            int width = View.resolveSize(dp(action, 56), widthSpec);
             int height = View.resolveSize(dp(action, 64), heightSpec);
             int iconSize = dp(action, 34);
             ViewGroup.LayoutParams params = icon.getLayoutParams();
@@ -202,7 +202,7 @@ public final class ImmersiveVideoUi {
         button.setTag(DOWNLOAD_TAG);
         button.setContentDescription(NativeDownloader.downloadString());
         button.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        button.setPadding(dp(bar, 19), dp(bar, 15), dp(bar, 19), dp(bar, 15));
+        button.setPadding(dp(bar, 11), dp(bar, 15), dp(bar, 11), dp(bar, 15));
         int icon = bar.getResources().getIdentifier("ic_vector_incoming", "drawable", bar.getContext().getPackageName());
         button.setImageDrawable(VideoActionIcon.download());
         button.setColorFilter(Color.WHITE);
@@ -220,7 +220,7 @@ public final class ImmersiveVideoUi {
             } catch (Exception e) { Logger.printException(() -> "Video rail download-all failed", e); }
             return true;
         });
-        bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 64)));
+        bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 56), dp(bar, 64)));
     }
 
     private static void ensureMoreButton(ViewGroup bar) {
@@ -229,7 +229,7 @@ public final class ImmersiveVideoUi {
         more.setTag(MORE_TAG);
         more.setImageDrawable(VideoActionIcon.more());
         more.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        more.setPadding(dp(bar, 19), dp(bar, 15), dp(bar, 19), dp(bar, 15));
+        more.setPadding(dp(bar, 11), dp(bar, 15), dp(bar, 11), dp(bar, 15));
         more.setContentDescription("Altre opzioni del post");
         more.setFocusable(true);
         more.setOnClickListener(v -> {
@@ -240,7 +240,7 @@ public final class ImmersiveVideoUi {
             View nativeMore = find(chrome, "tweet_curation_action");
             if (nativeMore != null && nativeMore.isEnabled()) nativeMore.performClick();
         });
-        bar.addView(more, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 64)));
+        bar.addView(more, new ViewGroup.LayoutParams(dp(bar, 56), dp(bar, 64)));
     }
 
     /** 0: pass through; 1: consume; 2: consume and cancel the native gesture. */

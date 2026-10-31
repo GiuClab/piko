@@ -63,8 +63,48 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         if (more != null && more.getAlpha() != 0) more.setAlpha(0);
         View play = ImmersiveVideoUi.find(chrome, "video_play_toggle");
         if (play != null && !play.isClickable()) play.setClickable(true);
+        alignPlayback(chrome);
         VideoActionIcon.install(bar);
         return changed;
+    }
+
+    /** Align with the actual track, not the wrapper that also contains the time label. */
+    private static void alignPlayback(View chrome) {
+        View wrapper = ImmersiveVideoUi.find(chrome, "seekbar");
+        View play = ImmersiveVideoUi.find(chrome, "video_play_toggle");
+        android.widget.AbsSeekBar track = findTrack(wrapper);
+        if (track == null || play == null || wrapper.getWidth() == 0 || track.getHeight() == 0) return;
+        track.setPadding(0, track.getPaddingTop(), 0, track.getPaddingBottom());
+        if (track.getParent() instanceof ViewGroup) {
+            ViewGroup parent = (ViewGroup) track.getParent();
+            // Native internal margins must not shorten the visible progress line.
+            int width = parent.getWidth();
+            if (width > 0 && (track.getLeft() != 0 || track.getWidth() != width)) {
+                track.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(track.getHeight(), View.MeasureSpec.EXACTLY));
+                track.layout(0, track.getTop(), width, track.getBottom());
+            }
+        }
+        int[] trackPosition = new int[2];
+        int[] playPosition = new int[2];
+        track.getLocationInWindow(trackPosition);
+        play.getLocationInWindow(playPosition);
+        float trackCenter = trackPosition[1] + track.getPaddingTop()
+                + (track.getHeight() - track.getPaddingTop() - track.getPaddingBottom()) / 2f;
+        float delta = trackCenter - (playPosition[1] + play.getHeight() / 2f);
+        if (Math.abs(delta) > 0.5f) play.setTranslationY(play.getTranslationY() + delta);
+    }
+
+    private static android.widget.AbsSeekBar findTrack(View view) {
+        if (view instanceof android.widget.AbsSeekBar) return (android.widget.AbsSeekBar) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                android.widget.AbsSeekBar track = findTrack(group.getChildAt(i));
+                if (track != null) return track;
+            }
+        }
+        return null;
     }
 
     private static boolean isTweetOwner(View view) {
