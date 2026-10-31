@@ -59,6 +59,7 @@ public final class ImmersiveVideoUi {
     /** Packed width/height for the injected onMeasure; -1 delegates to X unchanged. */
     public static long measure(ViewGroup bar, int widthSpec, int heightSpec) {
         if (!isRail(bar)) return -1;
+        VideoFollowControl.ensure(bar);
         int width = View.resolveSize(dp(bar, 72), widthSpec);
         int count = 0;
         for (int i = 0; i < bar.getChildCount(); i++) {
@@ -96,6 +97,7 @@ public final class ImmersiveVideoUi {
     }
 
     private static int actionOrder(View view) {
+        if (VideoFollowControl.TAG.equals(view.getTag())) return -1;
         if (DOWNLOAD_TAG.equals(view.getTag())) return 9;
         switch (name(view)) {
             case "inline_like": return 0;
@@ -354,6 +356,10 @@ public final class ImmersiveVideoUi {
         }
     }
 
+    static Object currentTweet(ViewGroup bar) throws ReflectiveOperationException {
+        return readField(bar, tweetFieldName());
+    }
+
     private static Object postKey(Object tweet) throws ReflectiveOperationException {
         return tweet == null ? null : tweet.getClass().getMethod("getId").invoke(tweet);
     }
@@ -379,7 +385,7 @@ public final class ImmersiveVideoUi {
         catch (Exception ignored) { return ""; }
     }
 
-    private static View find(View root, String resource) {
+    static View find(View root, String resource) {
         if (resource.equals(name(root))) return root;
         if (root instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) root;

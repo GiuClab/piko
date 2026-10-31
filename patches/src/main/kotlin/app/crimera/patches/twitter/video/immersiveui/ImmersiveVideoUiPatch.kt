@@ -36,17 +36,29 @@ private object ToggleFingerprint : Fingerprint(definingClass = ACTION, name = "s
 private object ToggleNameFingerprint : Fingerprint(definingClass = EXTENSION, strings = listOf("pikoVideoToggleField"))
 private object TweetNameFingerprint : Fingerprint(definingClass = EXTENSION, strings = listOf("pikoVideoTweetField"))
 
-/** Opt-in prototype. The profile follow control is deliberately not part of this patch yet. */
+/** Opt-in portrait UI using native post actions, playback control and follow-only requests. */
 @Suppress("unused")
 val immersiveVideoUiPatch = bytecodePatch(
     name = "Experimental vertical video controls",
-    description = "Portrait immersive player: right-side native actions and double-tap to like. Experimental; no follow button yet.",
+    description = "Portrait immersive player: vertical actions, single-tap play/pause, double-tap likes and a native follow control. Experimental.",
     default = false,
 ) {
     compatibleWith(COMPATIBILITY_X)
     dependsOn(settingsPatch, immersiveVideoUiResourcePatch)
 
     execute {
+        // Fail while patching if the target's native follow-only API has changed.
+        val followRequest = classDefBy("Lcom/twitter/api/legacy/request/user/f;")
+        if (followRequest.fields.none { it.name == "M" && it.type == "Lcom/twitter/model/core/entity/k1;" } ||
+            followRequest.fields.none { it.name == "K" && it.type == "[I" }) {
+            throw PatchException("Native follow response contract changed")
+        }
+        val cache = classDefBy("Lcom/twitter/cache/twitteruser/a;")
+        if (cache.methods.none { it.name == "c" && it.parameterTypes == listOf("J") && it.returnType == "Ljava/lang/Integer;" } ||
+            cache.methods.none { it.name == "j" && it.parameterTypes == listOf("Lcom/twitter/model/core/entity/k1;") }) {
+            throw PatchException("Native relationship cache contract changed")
+        }
+
         val bar = classDefBy(BAR)
         val tweetField = bar.fields.singleOrNull { it.type == "Lcom/twitter/model/core/e;" }
             ?: throw PatchException("Cannot uniquely identify the current tweet field")
