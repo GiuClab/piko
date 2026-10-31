@@ -297,6 +297,8 @@ public final class ImmersiveVideoUi {
                         // The first tap never reached native UP. Suppress the second native DOWN too,
                         // so native double-tap seeking cannot run before our like on UP.
                         flushPending(root, state, false);
+                        recycleDown(state);
+                        state.downEvent = MotionEvent.obtain(event);
                         return 2;
                     }
                     flushPending(root, state, true);
