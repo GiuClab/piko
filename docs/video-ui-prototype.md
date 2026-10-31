@@ -1,9 +1,9 @@
 # Experimental vertical video controls
 
-Current bundle: **3.11.0-video-ui.7**, based on upstream Piko `v3.11.0-dev.3`.
+Current bundle: **3.11.0-video-ui.8**, based on upstream Piko `v3.11.0-dev.3`.
 Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41207995237)
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41242235464)
 
 ## Current behavior
 
@@ -13,21 +13,21 @@ Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 - The author's already loaded native profile image is mirrored at the top of the
   rail, with a pink Follow badge. Tapping the photo invokes the native profile
   listener; the badge and Follow label keep the verified follow-only action.
-- The rail is 56dp wide with no end margin; icon sizes remain unchanged.
+- The rail is left-aligned, 56dp wide with no start margin; icon sizes remain unchanged.
 - Native play/pause occupies a 48dp cell on the left of the progress row. The
-  progress widget fills the remaining width to the right screen edge; duration and
+  progress widget fills the remaining width with a 12dp right inset; duration and
   scrubbing remain native. The runtime policy centers play/pause against the
   actual native AbsSeekBar track rather than its time-label wrapper, clears track
   horizontal padding and fits it to its immediate parent. Unknown track types
   retain native behavior; device confirmation is required.
-- The lower post menu is proxied in the right-hand rail below Download. It invokes
+- The lower post menu is proxied in the left-hand rail below Download. It invokes
   the current video's original bound menu listener; the footer original is transparent.
 - The footer shows the profile display name only. The post description and handle
   are hidden in this portrait player, not removed from the post's underlying data.
 - A portrait-only header copy preserves all native binding IDs. The transparent,
   one-pixel handle view remains available to the follow identity check. The original
   footer avatar remains bound and sized but transparent, supplying the image and
-  original profile listener for the right-hand avatar.
+  original profile listener for the left-hand avatar.
 - A lifecycle-scoped pre-draw policy reasserts hidden descriptions after recycled
   views are rebound. It also restores portrait controls after native auto-hide,
   scoped to the visible TweetView, and never cancels a frame in onPreDraw.
@@ -35,6 +35,17 @@ Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 - Single-tap play/pause, double-tap likes, native counts, downloads and follow status
   retain the previous iteration's behavior. Native action listeners are not replaced
   by the icon changes. The changes apply to the portrait immersive player only.
+
+## Horizontal seeking
+
+A one-finger horizontal drag starting on the video surface dispatches native
+AbsSeekBar touch callbacks. One video width corresponds to one full duration;
+positions are clamped to the start/end. Vertical-dominant motion stays native for
+video paging. Control-originated gestures, multi-touch and cancelled gestures do
+not start seeking. Double-tap likes and delayed single-tap playback remain enabled.
+The gesture requires a native AbsSeekBar; unsupported track types retain X behavior.
+Direction thresholds and progress/clamping arithmetic are covered by JVM tests;
+actual touch routing requires device testing.
 
 ## Follow behavior
 
@@ -47,7 +58,9 @@ miss or unknown native flag is never treated as proof that a profile is unfollow
 The control is disabled until a known eligible state is available. Even a disabled
 status tile absorbs touches instead of triggering video gestures underneath it.
 
-The click rechecks the account, author and relationship. It queues X's native
+The click rechecks the account, author and relationship. Confirmation is polled
+every 100ms, and completion refreshes the initiating tile immediately rather than
+waiting for its one-second refresh. Network latency remains unchanged. It queues X's native
 **follow-only** request; it does not use the native follow/unfollow toggle action.
 `Invio…` is shown while waiting. A followed state is published into the native cache
 only after the request supplies a successful matching user response. Protected
@@ -62,11 +75,11 @@ was sent by the development or APK verification tools.
 ## Verification
 
 - The preceding version was confirmed on device to have working playback gestures,
-  likes and follow. This iteration adjusts the rail end spacing, progress width and alignment
-  against the actual progress track.
-- Gesture and relationship-state tests passed in GitHub Actions for this version.
+  likes and follow. This iteration moves the rail left, adds a progress end inset and horizontal
+  seeking, and reduces the follow confirmation display delay.
+- Gesture, horizontal-seek math and relationship-state tests passed in GitHub Actions for this version.
 - Java extensions and Kotlin patches compiled successfully; the `.mpp` artifact was
-  generated. The final tested source is commit `ebe2751bd708e9f497eacc3ef0e27d470af546d3`.
+  generated. The final tested source is commit `331961b4fb04095a4ab77352b5d499351b32bbba`.
 - APK application/rebuilding was not repeated for this version because the original
   APKM is no longer present in the current workspace. The preceding version's
   successful rebuild does not establish this version's resource compatibility.
@@ -76,8 +89,8 @@ was sent by the development or APK verification tools.
 
 ## Aggiornamento sul telefono
 
-1. Scarica `piko-patch-bundle-8` dalla compilazione collegata sopra ed estrai
-   `patches-3.11.0-video-ui.7.mpp`.
+1. Scarica `piko-patch-bundle-9` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.8.mpp`.
 2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
    seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
 3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
