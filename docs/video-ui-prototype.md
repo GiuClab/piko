@@ -5,6 +5,10 @@ Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
 [Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41244490449)
 
+## Device feedback
+
+After version 10, the maintainer reported the player working on the development phone. This supersedes the earlier pending confirmation for vertical switching, but is not broad device/account validation. The previously reported follow-state diagnostic remains documented for recurrence reports.
+
 ## Current behavior
 
 - Filled white heart, comment bubble, bookmark and share arrow, styled for the

@@ -1,0 +1,17 @@
+name: Video UI feature request
+description: Suggest a change to this fork's video player.
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain what should change and which existing behavior should be preserved.
+    validations:
+      required: true

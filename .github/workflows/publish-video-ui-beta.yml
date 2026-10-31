@@ -1,0 +1,58 @@
+name: Publish video UI beta
+
+on:
+  push:
+    branches: [experimental/video-ui]
+    paths: [.github/workflows/publish-video-ui-beta.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: publish-video-ui-beta-1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'gcapurro89/piko'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify tested build and download bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/gcapurro89/piko/actions/runs/41244490449 --jq .conclusion)" = success
+          test "$(gh api repos/gcapurro89/piko/actions/runs/41244490449 --jq .head_sha)" = 743b4b69a3338c999a2c41068f078bb61d33b9b7
+          mkdir -p release-assets
+          gh run download 41244490449 --repo gcapurro89/piko --name piko-patch-bundle-13 --dir release-assets
+          gh run download 41244490449 --repo gcapurro89/piko --name piko-source-13 --dir release-assets
+          test -s release-assets/patches-3.11.0-video-ui.10.mpp
+          grep -Fx 743b4b69a3338c999a2c41068f078bb61d33b9b7 release-assets/build-source.txt
+          cp LICENSE NOTICE release-assets/
+          cd release-assets
+          sha256sum patches-3.11.0-video-ui.10.mpp > SHA256SUMS.txt
+      - name: Publish public testing prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view video-ui-beta.1 --repo gcapurro89/piko >/dev/null 2>&1; then
+            echo 'Release already exists; leaving it unchanged.'
+            exit 0
+          fi
+          gh release create video-ui-beta.1 \
+            --repo gcapurro89/piko \
+            --target 743b4b69a3338c999a2c41068f078bb61d33b9b7 \
+            --title 'Piko Video UI — Public testing beta 1' \
+            --notes-file docs/release-notes/video-ui-beta.1.md \
+            --prerelease \
+            release-assets/patches-3.11.0-video-ui.10.mpp \
+            release-assets/build-source.txt \
+            release-assets/SHA256SUMS.txt \
+            release-assets/LICENSE release-assets/NOTICE
