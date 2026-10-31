@@ -32,13 +32,15 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
             chrome = (View) chrome.getParent();
         }
         boolean changed = false;
-        for (String id : new String[]{"tweet_content_text", "username", "text_separator", "promoted_badge", "tweet_edit_badge"}) {
+        for (String id : new String[]{"tweet_content_text", "text_separator", "promoted_badge", "tweet_edit_badge"}) {
             View view = ImmersiveVideoUi.find(chrome, id);
             if (view != null && view.getVisibility() != View.GONE) {
                 view.setVisibility(View.GONE);
                 changed = true;
             }
         }
+        View username = ImmersiveVideoUi.find(chrome, "username");
+        if (username != null && username.getAlpha() != 0) username.setAlpha(0);
         View avatar = ImmersiveVideoUi.find(chrome, "tweet_profile_image_container");
         if (avatar != null && avatar.getAlpha() != 0) avatar.setAlpha(0);
         View play = ImmersiveVideoUi.find(chrome, "video_play_toggle");

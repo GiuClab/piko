@@ -13,7 +13,7 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
         )
         document("res/layout/piko_video_header.xml").use { editor ->
             fun header(id: String) = editor.childNodes.findElementByAttributeValueOrThrow("android:id", "@id/$id") as Element
-            for (id in listOf("username", "text_separator", "promoted_badge", "tweet_edit_badge")) {
+            for (id in listOf("text_separator", "promoted_badge", "tweet_edit_badge")) {
                 header(id).setAttribute("android:visibility", "gone")
             }
             header("tweet_profile_image_container").apply {
@@ -24,10 +24,24 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
                 removeAttribute("app:layout_constraintBottom_toBottomOf")
                 setAttribute("app:layout_constraintTop_toTopOf", "parent")
             }
+            // Retain a bound, visible username view for native identity checks, without drawing it.
+            header("username").apply {
+                setAttribute("android:alpha", "0")
+                setAttribute("android:layout_width", "1px")
+                setAttribute("android:layout_height", "1px")
+                setAttribute("android:importantForAccessibility", "no")
+                removeAttribute("app:layout_constraintTop_toBottomOf")
+                removeAttribute("app:layout_constraintBottom_toBottomOf")
+                setAttribute("app:layout_constraintTop_toTopOf", "parent")
+            }
             header("name").apply {
                 removeAttribute("app:layout_constraintStart_toEndOf")
                 setAttribute("app:layout_constraintStart_toStartOf", "parent")
                 setAttribute("android:layout_marginStart", "0dp")
+                removeAttribute("app:layout_constraintBottom_toTopOf")
+                setAttribute("app:layout_constraintBottom_toBottomOf", "parent")
+                setAttribute("app:layout_constraintTop_toTopOf", "parent")
+                setAttribute("app:layout_constraintVertical_bias", "0.5")
             }
         }
         document("res/layout/immersive_media_player_chrome_portrait.xml").use { editor ->
