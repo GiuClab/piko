@@ -41,6 +41,18 @@ public final class VideoTapTrackerTest {
         tap(t, POST, 0, 50, 100, 100);
         t.down(POST, 150, 100, 100);
         check(!t.up(200, 120, 100, 8, 40, 300, 500), "Movement on up must be checked even without a move event");
+        check(!t.hasPendingTap(), "Rejected up must not schedule a native single tap");
+        t.cancel();
+        tap(t, POST, 0, 50, 100, 100);
+        check(t.hasPendingTap(), "First valid tap can be replayed natively after timeout");
+        t.down(POST, 150, 102, 102);
+        check(t.isSecondDown(40, 300), "Detect the second DOWN before native double-tap seeking runs");
+        t.move(160, 102, 8);
+        check(!t.isTracking() && !t.isSecondDown(40, 300), "Dragging cancels a pending second tap");
+        t.cancel();
+        tap(t, POST, 0, 50, 100, 100);
+        t.down(new Object(), 150, 102, 102);
+        check(!t.isSecondDown(40, 300), "Second DOWN on a different post must not be suppressed");
         System.out.println("VideoTapTracker: gesture cases passed");
     }
 }

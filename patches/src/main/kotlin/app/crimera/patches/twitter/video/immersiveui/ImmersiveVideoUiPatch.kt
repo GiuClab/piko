@@ -98,15 +98,18 @@ val immersiveVideoUiPatch = bytecodePatch(
             MutableMethodImplementation(4),
         ).toMutable().apply {
             addInstructions(0, """
-                invoke-static {p0, p1}, $EXTENSION->onTouch(Landroid/view/ViewGroup;Landroid/view/MotionEvent;)Z
+                invoke-static {p0, p1}, $EXTENSION->onTouch(Landroid/view/ViewGroup;Landroid/view/MotionEvent;)I
                 move-result v0
                 if-eqz v0, :native_dispatch
+                const/4 v1, 0x2
+                if-ne v0, v1, :consume_tap
                 invoke-static {p1}, Landroid/view/MotionEvent;->obtain(Landroid/view/MotionEvent;)Landroid/view/MotionEvent;
                 move-result-object v0
                 const/4 v1, 0x3
                 invoke-virtual {v0, v1}, Landroid/view/MotionEvent;->setAction(I)V
                 invoke-super {p0, v0}, ${view.superclass}->dispatchTouchEvent(Landroid/view/MotionEvent;)Z
                 invoke-virtual {v0}, Landroid/view/MotionEvent;->recycle()V
+                :consume_tap
                 const/4 v0, 0x1
                 return v0
                 :native_dispatch

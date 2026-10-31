@@ -113,25 +113,30 @@ public final class ImmersiveVideoUi {
         bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 56)));
     }
 
-    /** Observe ordinary gestures; consume only the completed second tap of a native like. */
-    public static boolean onTouch(ViewGroup root, MotionEvent event) {
-        if (!enabled) return false;
+    /** 0: pass through; 1: consume; 2: consume and cancel the native gesture. */
+    public static int onTouch(ViewGroup root, MotionEvent event) {
+        if (!enabled) return 0;
+        TouchState state = TOUCH.get(root);
+        if (state != null && state.replaying) return 0;
         View video = find(root, "video_container");
         View chrome = find(root, "chrome_portrait");
-        if (!(chrome instanceof ViewGroup) || video == null || !video.isShown() || !isRail(chrome)) return false;
-        TouchState state = TOUCH.get(root);
+        if (!(chrome instanceof ViewGroup) || video == null || !video.isShown() || !isRail(chrome)) {
+            if (state != null) resetTouch(root, state);
+            return 0;
+        }
         if (state == null) { state = new TouchState(); TOUCH.put(root, state); }
         if (event.getPointerCount() != 1 || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-            state.tracker.cancel();
-            return false;
+            resetTouch(root, state);
+            return 0;
         }
         View like = find(root, "inline_like");
         ViewGroup bar = findBar(chrome);
-        if (like == null || bar == null || !like.isEnabled()) { state.tracker.cancel(); return false; }
+        if (like == null || bar == null || !like.isEnabled()) { resetTouch(root, state); return 0; }
+        boolean nativeSuppressed = state.secondTap;
         try {
             Object tweet = readField(bar, tweetFieldName());
-            if (tweet == null) { state.tracker.cancel(); return false; }
-            if (state.post != tweet) { state.tracker.cancel(); state.post = tweet; }
+            if (tweet == null) { resetTouch(root, state); return 0; }
+            if (state.post != tweet) { resetTouch(root, state); state.post = tweet; }
             float x = event.getRawX(), y = event.getRawY();
             ViewConfiguration config = ViewConfiguration.get(root.getContext());
             switch (event.getActionMasked()) {
@@ -139,39 +144,111 @@ public final class ImmersiveVideoUi {
                     Rect bounds = new Rect();
                     if (!video.getGlobalVisibleRect(bounds) || !bounds.contains((int) x, (int) y) ||
                             controlHit(root, root, video, (int) x, (int) y)) {
+                        flushPending(root, state, true);
                         state.tracker.cancel();
-                    } else {
-                        state.tracker.down(tweet, event.getEventTime(), x, y);
+                        recycleDown(state);
+                        state.secondTap = false;
+                        return 0;
                     }
-                    break;
+                    state.tracker.down(tweet, event.getEventTime(), x, y);
+                    state.secondTap = state.pendingUp != null && state.tracker.isSecondDown(
+                            config.getScaledDoubleTapSlop(), ViewConfiguration.getDoubleTapTimeout());
+                    if (state.secondTap) {
+                        // The first tap never reached native UP. Suppress the second native DOWN too,
+                        // so native double-tap seeking cannot run before our like on UP.
+                        flushPending(root, state, false);
+                        return 2;
+                    }
+                    flushPending(root, state, true);
+                    recycleDown(state);
+                    state.downEvent = MotionEvent.obtain(event);
+                    return 0;
                 case MotionEvent.ACTION_MOVE:
                     state.tracker.move(x, y, config.getScaledTouchSlop());
-                    break;
+                    return state.secondTap ? 1 : 0;
                 case MotionEvent.ACTION_UP:
-                    if (!state.tracker.up(event.getEventTime(), x, y, config.getScaledTouchSlop(),
-                            config.getScaledDoubleTapSlop(), ViewConfiguration.getDoubleTapTimeout(),
-                            ViewConfiguration.getLongPressTimeout())) break;
-                    // If the native state cannot be read, do nothing: never risk toggling off a like.
-                    boolean liked = (Boolean) readField(like, toggleFieldName());
-                    if (!liked) {
-                        if (state.lastLikePost == tweet && event.getEventTime() - state.lastLikeTime < 1500) return true;
-                        if (!like.performClick()) return false;
-                        state.lastLikePost = tweet;
-                        state.lastLikeTime = event.getEventTime();
+                    boolean wasTracking = state.tracker.isTracking();
+                    boolean doubleTap = state.tracker.up(event.getEventTime(), x, y,
+                            config.getScaledTouchSlop(), config.getScaledDoubleTapSlop(),
+                            ViewConfiguration.getDoubleTapTimeout(), ViewConfiguration.getLongPressTimeout());
+                    if (state.secondTap) {
+                        state.secondTap = false;
+                        recycleDown(state);
+                        if (!doubleTap) return 1;
+                        // If this read fails, the native gesture remains consumed: never toggle off a like.
+                        boolean liked = (Boolean) readField(like, toggleFieldName());
+                        if (!liked) {
+                            if (state.lastLikePost == tweet && event.getEventTime() - state.lastLikeTime < 1500) return 1;
+                            if (!like.performClick()) return 1;
+                            state.lastLikePost = tweet;
+                            state.lastLikeTime = event.getEventTime();
+                        }
+                        showHeart(root, event.getX(), event.getY());
+                        return 1;
                     }
-                    showHeart(root, event.getX(), event.getY());
-                    return true;
+                    if (wasTracking && state.tracker.hasPendingTap() && state.downEvent != null &&
+                            event.getEventTime() - event.getDownTime() < ViewConfiguration.getLongPressTimeout()) {
+                        state.pendingDown = state.downEvent;
+                        state.downEvent = null;
+                        state.pendingUp = MotionEvent.obtain(event);
+                        state.pendingPost = tweet;
+                        TouchState pendingState = state;
+                        state.pendingReplay = () -> flushPending(root, pendingState, true);
+                        root.postDelayed(state.pendingReplay, ViewConfiguration.getDoubleTapTimeout());
+                        // Cancel native DOWN now. If a second tap does not arrive, replay a complete
+                        // native single tap after the timeout. This avoids pausing on a double tap.
+                        return 2;
+                    }
+                    recycleDown(state);
+                    return 0;
                 default:
-                    break;
+                    return 0;
             }
         } catch (Exception e) {
-            state.tracker.cancel();
+            boolean consumedSequence = nativeSuppressed || state.secondTap;
+            resetTouch(root, state);
             if (!state.reportedFailure) {
                 state.reportedFailure = true;
                 Logger.printException(() -> "Video double-tap disabled for this view: native state unavailable", e);
             }
+            return consumedSequence ? 1 : 0;
         }
-        return false;
+    }
+
+    private static void recycleDown(TouchState state) {
+        if (state.downEvent != null) { state.downEvent.recycle(); state.downEvent = null; }
+    }
+
+    private static void resetTouch(ViewGroup root, TouchState state) {
+        flushPending(root, state, false);
+        recycleDown(state);
+        state.tracker.cancel();
+        state.secondTap = false;
+        state.post = null;
+    }
+
+    private static void flushPending(ViewGroup root, TouchState state, boolean replay) {
+        if (state.pendingReplay != null) root.removeCallbacks(state.pendingReplay);
+        MotionEvent down = state.pendingDown, up = state.pendingUp;
+        Object post = state.pendingPost;
+        state.pendingReplay = null;
+        state.pendingDown = state.pendingUp = null;
+        state.pendingPost = null;
+        try {
+            ViewGroup bar = findBar(root);
+            if (replay && down != null && up != null && root.isAttachedToWindow() && root.isShown() &&
+                    bar != null && isRail(bar) && readField(bar, tweetFieldName()) == post) {
+                state.replaying = true;
+                root.dispatchTouchEvent(down);
+                root.dispatchTouchEvent(up);
+            }
+        } catch (Exception e) {
+            Logger.printException(() -> "Video single-tap replay skipped", e);
+        } finally {
+            state.replaying = false;
+            if (down != null) down.recycle();
+            if (up != null) up.recycle();
+        }
     }
 
     private static Object readField(Object target, String name) throws ReflectiveOperationException {
@@ -253,7 +330,10 @@ public final class ImmersiveVideoUi {
         final VideoTapTracker tracker = new VideoTapTracker();
         Object post, lastLikePost;
         long lastLikeTime;
-        boolean reportedFailure;
+        MotionEvent downEvent, pendingDown, pendingUp;
+        Object pendingPost;
+        Runnable pendingReplay;
+        boolean secondTap, replaying, reportedFailure;
     }
 
     private static final class Heart extends Drawable {

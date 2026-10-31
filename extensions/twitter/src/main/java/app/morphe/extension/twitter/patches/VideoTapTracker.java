@@ -22,6 +22,15 @@ final class VideoTapTracker {
         if (distanceSquared(x, y, downX, downY) > (long) slop * slop) cancel();
     }
 
+    boolean isTracking() { return tracking; }
+    boolean hasPendingTap() { return previousUp >= 0 && !tracking; }
+
+    boolean isSecondDown(int doubleSlop, int doubleTimeout) {
+        return tracking && previousUp >= 0 && downTime >= previousUp &&
+                downTime - previousUp <= doubleTimeout &&
+                distanceSquared(downX, downY, previousX, previousY) <= (long) doubleSlop * doubleSlop;
+    }
+
     boolean up(long time, float x, float y, int touchSlop, int doubleSlop, int doubleTimeout, int longTimeout) {
         if (!tracking) return false;
         tracking = false;
