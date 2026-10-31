@@ -1,9 +1,9 @@
 # Experimental vertical video controls
 
-Current bundle: **3.11.0-video-ui.9**, based on upstream Piko `v3.11.0-dev.3`.
+Current bundle: **3.11.0-video-ui.10**, based on upstream Piko `v3.11.0-dev.3`.
 Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41243455646)
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41244490449)
 
 ## Current behavior
 
@@ -39,8 +39,10 @@ Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 ## Horizontal seeking
 
 A video-surface DOWN immediately reserves interception. Tentative movement is not
-forwarded to X's dismiss listener. Vertical-dominant motion releases interception
-for native paging, while horizontal motion remains owned until UP/CANCEL even if
+forwarded to X's dismiss listener. Vertical-dominant motion releases interception and hands native paging a complete
+DOWN/MOVE sequence in activity-content coordinates. Replay bypasses patch gesture
+recognition; subsequent events remain native until the next DOWN. The original
+second-touch DOWN is retained as well. Horizontal motion remains owned until UP/CANCEL even if
 the scrubber is unavailable. The injected native CANCEL path reasserts ownership
 after cancellation callbacks that could release it. Controls, including the top
 back arrow, bypass surface reservation. Android system back gestures are outside
@@ -83,11 +85,12 @@ was sent by the development or APK verification tools.
 ## Verification
 
 - The preceding version was confirmed on device to have working playback gestures,
-  likes and follow. This iteration reserves surface gestures before X can begin horizontal dismissal
-  and reasserts that reservation after native cancellation.
+  likes and follow. Version 9 was reported to block vertical paging on the phone. This iteration
+  restores a complete native gesture handoff for vertical movement. Device
+  verification remains required; successful compilation does not verify routing.
 - Gesture, horizontal-seek math and relationship-state tests passed in GitHub Actions for this version.
 - Java extensions and Kotlin patches compiled successfully; the `.mpp` artifact was
-  generated. The final tested source is commit `d8d75844cb7a5cd969f2b843fbf34c639330e89c`.
+  generated. The final tested source is commit `743b4b69a3338c999a2c41068f078bb61d33b9b7`.
 - APK application/rebuilding was not repeated for this version because the original
   APKM is no longer present in the current workspace. The preceding version's
   successful rebuild does not establish this version's resource compatibility.
@@ -97,8 +100,8 @@ was sent by the development or APK verification tools.
 
 ## Aggiornamento sul telefono
 
-1. Scarica `piko-patch-bundle-11` dalla compilazione collegata sopra ed estrai
-   `patches-3.11.0-video-ui.9.mpp`.
+1. Scarica `piko-patch-bundle-13` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.10.mpp`.
 2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
    seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
 3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
