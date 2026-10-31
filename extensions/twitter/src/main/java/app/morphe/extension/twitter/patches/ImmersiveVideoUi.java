@@ -11,13 +11,20 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import java.lang.reflect.Field;
+import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,7 +64,7 @@ public final class ImmersiveVideoUi {
         for (int i = 0; i < bar.getChildCount(); i++) {
             if (bar.getChildAt(i).getVisibility() == View.VISIBLE) count++;
         }
-        int desiredHeight = bar.getPaddingTop() + bar.getPaddingBottom() + count * dp(bar, 56);
+        int desiredHeight = bar.getPaddingTop() + bar.getPaddingBottom() + count * dp(bar, 64);
         int height = View.resolveSize(desiredHeight, heightSpec);
         int cellHeight = count == 0 ? 0 : Math.max(0, height - bar.getPaddingTop() - bar.getPaddingBottom()) / count;
         int cellWidth = Math.max(0, width - bar.getPaddingLeft() - bar.getPaddingRight());
@@ -73,17 +80,112 @@ public final class ImmersiveVideoUi {
     public static boolean layout(ViewGroup bar) {
         if (!isRail(bar)) return false;
         int top = bar.getPaddingTop();
+        List<View> items = new ArrayList<>();
         for (int i = 0; i < bar.getChildCount(); i++) {
             View child = bar.getChildAt(i);
-            if (child.getVisibility() != View.VISIBLE) {
-                child.layout(0, 0, 0, 0);
-                continue;
-            }
+            if (child.getVisibility() == View.VISIBLE) items.add(child);
+            else child.layout(0, 0, 0, 0);
+        }
+        items.sort(Comparator.comparingInt(v -> actionOrder(v)));
+        for (View child : items) {
             int left = bar.getPaddingLeft();
             child.layout(left, top, left + child.getMeasuredWidth(), top + child.getMeasuredHeight());
             top += child.getMeasuredHeight();
         }
         return true;
+    }
+
+    private static int actionOrder(View view) {
+        if (DOWNLOAD_TAG.equals(view.getTag())) return 9;
+        switch (name(view)) {
+            case "inline_like": return 0;
+            case "inline_reply": return 1;
+            case "inline_retweet": return 2;
+            case "inline_bookmark": return 3;
+            default: return 4;
+        }
+    }
+
+    /** Native action views keep their listeners and checked state; only their geometry changes. */
+    public static long measureAction(ViewGroup action, int widthSpec, int heightSpec) {
+        if (!isRail(action)) return -1;
+        try {
+            ImageView icon = (ImageView) action.getClass().getMethod("getIconView").invoke(action);
+            View count = (View) action.getClass().getMethod("getTextView").invoke(action);
+            ViewGroup iconFrame = (ViewGroup) icon.getParent();
+            int width = View.resolveSize(dp(action, 72), widthSpec);
+            int height = View.resolveSize(dp(action, 64), heightSpec);
+            int iconSize = dp(action, 34);
+            ViewGroup.LayoutParams params = icon.getLayoutParams();
+            if (params.width != iconSize || params.height != iconSize ||
+                    !(params instanceof FrameLayout.LayoutParams) ||
+                    ((FrameLayout.LayoutParams) params).gravity != Gravity.CENTER) {
+                icon.setLayoutParams(new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+            }
+            icon.setPadding(0, 0, 0, 0);
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iconFrame.setPadding(0, 0, 0, 0);
+            iconFrame.setClipChildren(false);
+            int frameSize = dp(action, 40);
+            iconFrame.measure(exact(frameSize), exact(frameSize));
+            styleCount(count);
+            if (count.getVisibility() == View.VISIBLE) {
+                count.measure(View.MeasureSpec.makeMeasureSpec(Math.max(0, width - dp(action, 4)), View.MeasureSpec.AT_MOST),
+                        View.MeasureSpec.makeMeasureSpec(dp(action, 20), View.MeasureSpec.AT_MOST));
+            }
+            for (int i = 0; i < action.getChildCount(); i++) {
+                View child = action.getChildAt(i);
+                if (child != count && child != iconFrame) child.measure(exact(frameSize), exact(frameSize));
+            }
+            return ((long) height << 32) | (width & 0xffffffffL);
+        } catch (ReflectiveOperationException e) {
+            return -1;
+        }
+    }
+
+    public static boolean layoutAction(ViewGroup action) {
+        if (!isRail(action)) return false;
+        try {
+            View icon = (View) action.getClass().getMethod("getIconView").invoke(action);
+            View count = (View) action.getClass().getMethod("getTextView").invoke(action);
+            View frame = (View) icon.getParent();
+            boolean hasCount = count.getVisibility() == View.VISIBLE && count.getMeasuredWidth() > 0;
+            int total = frame.getMeasuredHeight() + (hasCount ? dp(action, 2) + count.getMeasuredHeight() : 0);
+            int top = Math.max(0, (action.getHeight() - total) / 2);
+            int left = (action.getWidth() - frame.getMeasuredWidth()) / 2;
+            frame.layout(left, top, left + frame.getMeasuredWidth(), top + frame.getMeasuredHeight());
+            for (int i = 0; i < action.getChildCount(); i++) {
+                View child = action.getChildAt(i);
+                if (child == count || child == frame) continue;
+                child.layout(left, top, left + frame.getMeasuredWidth(), top + frame.getMeasuredHeight());
+            }
+            if (hasCount) {
+                int countLeft = (action.getWidth() - count.getMeasuredWidth()) / 2;
+                int countTop = top + frame.getMeasuredHeight() + dp(action, 2);
+                count.layout(countLeft, countTop, countLeft + count.getMeasuredWidth(), countTop + count.getMeasuredHeight());
+            } else count.layout(0, 0, 0, 0);
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
+    }
+
+    private static int exact(int size) { return View.MeasureSpec.makeMeasureSpec(size, View.MeasureSpec.EXACTLY); }
+
+    private static void styleCount(View count) {
+        count.setPadding(0, 0, 0, 0);
+        if (count instanceof TextView) {
+            TextView text = (TextView) count;
+            float targetSize = 12 * count.getResources().getDisplayMetrics().scaledDensity;
+            if (Math.abs(text.getTextSize() - targetSize) > 0.5f) text.setTextSize(12);
+            text.setTextColor(Color.WHITE);
+            text.setIncludeFontPadding(false);
+            text.setGravity(Gravity.CENTER);
+            text.setShadowLayer(dp(count, 2), 0, dp(count, 1), Color.BLACK);
+        } else if (count instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) count;
+            for (int i = 0; i < group.getChildCount(); i++) styleCount(group.getChildAt(i));
+        }
     }
 
     /** Called by the existing downloader only when that feature is enabled. */
@@ -92,7 +194,8 @@ public final class ImmersiveVideoUi {
         ImageView button = new ImageView(bar.getContext());
         button.setTag(DOWNLOAD_TAG);
         button.setContentDescription(NativeDownloader.downloadString());
-        button.setScaleType(ImageView.ScaleType.CENTER);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        button.setPadding(dp(bar, 19), dp(bar, 15), dp(bar, 19), dp(bar, 15));
         int icon = bar.getResources().getIdentifier("ic_vector_incoming", "drawable", bar.getContext().getPackageName());
         if (icon != 0) button.setImageResource(icon);
         button.setColorFilter(Color.WHITE);
@@ -110,7 +213,7 @@ public final class ImmersiveVideoUi {
             } catch (Exception e) { Logger.printException(() -> "Video rail download-all failed", e); }
             return true;
         });
-        bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 56)));
+        bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 64)));
     }
 
     /** 0: pass through; 1: consume; 2: consume and cancel the native gesture. */
@@ -136,7 +239,8 @@ public final class ImmersiveVideoUi {
         try {
             Object tweet = readField(bar, tweetFieldName());
             if (tweet == null) { resetTouch(root, state); return 0; }
-            if (state.post != tweet) { resetTouch(root, state); state.post = tweet; }
+            Object key = postKey(tweet);
+            if (!Objects.equals(state.post, key)) { resetTouch(root, state); state.post = key; }
             float x = event.getRawX(), y = event.getRawY();
             ViewConfiguration config = ViewConfiguration.get(root.getContext());
             switch (event.getActionMasked()) {
@@ -150,7 +254,7 @@ public final class ImmersiveVideoUi {
                         state.secondTap = false;
                         return 0;
                     }
-                    state.tracker.down(tweet, event.getEventTime(), x, y);
+                    state.tracker.down(state.post, event.getEventTime(), x, y);
                     state.secondTap = state.pendingUp != null && state.tracker.isSecondDown(
                             config.getScaledDoubleTapSlop(), ViewConfiguration.getDoubleTapTimeout());
                     if (state.secondTap) {
@@ -178,9 +282,9 @@ public final class ImmersiveVideoUi {
                         // If this read fails, the native gesture remains consumed: never toggle off a like.
                         boolean liked = (Boolean) readField(like, toggleFieldName());
                         if (!liked) {
-                            if (state.lastLikePost == tweet && event.getEventTime() - state.lastLikeTime < 1500) return 1;
+                            if (state.lastLikePost == state.post && event.getEventTime() - state.lastLikeTime < 1500) return 1;
                             if (!like.performClick()) return 1;
-                            state.lastLikePost = tweet;
+                            state.lastLikePost = state.post;
                             state.lastLikeTime = event.getEventTime();
                         }
                         showHeart(root, event.getX(), event.getY());
@@ -191,12 +295,12 @@ public final class ImmersiveVideoUi {
                         state.pendingDown = state.downEvent;
                         state.downEvent = null;
                         state.pendingUp = MotionEvent.obtain(event);
-                        state.pendingPost = tweet;
+                        state.pendingPost = state.post;
                         TouchState pendingState = state;
                         state.pendingReplay = () -> flushPending(root, pendingState, true);
                         root.postDelayed(state.pendingReplay, ViewConfiguration.getDoubleTapTimeout());
-                        // Cancel native DOWN now. If a second tap does not arrive, replay a complete
-                        // native single tap after the timeout. This avoids pausing on a double tap.
+                        // Cancel native DOWN now. Confirm a single tap through X's actual play/pause
+                        // button, rather than replaying X's video-surface gesture (which toggles chrome).
                         return 2;
                     }
                     recycleDown(state);
@@ -237,10 +341,9 @@ public final class ImmersiveVideoUi {
         try {
             ViewGroup bar = findBar(root);
             if (replay && down != null && up != null && root.isAttachedToWindow() && root.isShown() &&
-                    bar != null && isRail(bar) && readField(bar, tweetFieldName()) == post) {
-                state.replaying = true;
-                root.dispatchTouchEvent(down);
-                root.dispatchTouchEvent(up);
+                    bar != null && isRail(bar) && Objects.equals(postKey(readField(bar, tweetFieldName())), post)) {
+                View play = find(root, "video_play_toggle");
+                if (play != null && play.isEnabled()) play.performClick();
             }
         } catch (Exception e) {
             Logger.printException(() -> "Video single-tap replay skipped", e);
@@ -249,6 +352,10 @@ public final class ImmersiveVideoUi {
             if (down != null) down.recycle();
             if (up != null) up.recycle();
         }
+    }
+
+    private static Object postKey(Object tweet) throws ReflectiveOperationException {
+        return tweet == null ? null : tweet.getClass().getMethod("getId").invoke(tweet);
     }
 
     private static Object readField(Object target, String name) throws ReflectiveOperationException {

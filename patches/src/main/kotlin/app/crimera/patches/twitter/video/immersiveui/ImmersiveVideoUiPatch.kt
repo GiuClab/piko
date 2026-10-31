@@ -30,6 +30,8 @@ private const val EXTENSION = "$PATCHES_DESCRIPTOR/ImmersiveVideoUi;"
 
 private object MeasureFingerprint : Fingerprint(definingClass = BAR, name = "onMeasure", returnType = "V")
 private object LayoutFingerprint : Fingerprint(definingClass = BAR, name = "onLayout", returnType = "V")
+private object ActionMeasureFingerprint : Fingerprint(definingClass = ACTION, name = "onMeasure", returnType = "V")
+private object ActionLayoutFingerprint : Fingerprint(definingClass = ACTION, name = "onLayout", returnType = "V")
 private object ToggleFingerprint : Fingerprint(definingClass = ACTION, name = "setToggleOn", returnType = "V")
 private object ToggleNameFingerprint : Fingerprint(definingClass = EXTENSION, strings = listOf("pikoVideoToggleField"))
 private object TweetNameFingerprint : Fingerprint(definingClass = EXTENSION, strings = listOf("pikoVideoTweetField"))
@@ -55,32 +57,37 @@ val immersiveVideoUiPatch = bytecodePatch(
 
         twitterInitHook.fingerprint.method.addInstruction(0, "invoke-static {}, $EXTENSION->enable()V")
 
-        MeasureFingerprint.method.apply {
-            val original = getInstruction(0)
-            if (implementation!!.registerCount - 3 < 4) throw PatchException("Insufficient measurement scratch registers")
-            addInstructionsWithLabels(0, """
-                invoke-static {p0, p1, p2}, $EXTENSION->measure(Landroid/view/ViewGroup;II)J
-                move-result-wide v0
-                const-wide/16 v2, -0x1
-                cmp-long v2, v0, v2
-                if-eqz v2, :native_measure
-                long-to-int v2, v0
-                const/16 v3, 0x20
-                ushr-long/2addr v0, v3
-                long-to-int v3, v0
-                invoke-virtual {p0, v2, v3}, Landroid/view/View;->setMeasuredDimension(II)V
-                return-void
-            """.trimIndent(), ExternalLabel("native_measure", original))
-        }
-        LayoutFingerprint.method.apply {
-            val original = getInstruction(0)
-            if (implementation!!.registerCount - 6 < 1) throw PatchException("Insufficient layout scratch registers")
-            addInstructionsWithLabels(0, """
-                invoke-static {p0}, $EXTENSION->layout(Landroid/view/ViewGroup;)Z
-                move-result v0
-                if-eqz v0, :native_layout
-                return-void
-            """.trimIndent(), ExternalLabel("native_layout", original))
+        listOf(
+            Triple(MeasureFingerprint, LayoutFingerprint, ""),
+            Triple(ActionMeasureFingerprint, ActionLayoutFingerprint, "Action"),
+        ).forEach { (measureFingerprint, layoutFingerprint, suffix) ->
+            measureFingerprint.method.apply {
+                val original = getInstruction(0)
+                if (implementation!!.registerCount - 3 < 4) throw PatchException("Insufficient measurement scratch registers")
+                addInstructionsWithLabels(0, """
+                    invoke-static {p0, p1, p2}, $EXTENSION->measure$suffix(Landroid/view/ViewGroup;II)J
+                    move-result-wide v0
+                    const-wide/16 v2, -0x1
+                    cmp-long v2, v0, v2
+                    if-eqz v2, :native_measure
+                    long-to-int v2, v0
+                    const/16 v3, 0x20
+                    ushr-long/2addr v0, v3
+                    long-to-int v3, v0
+                    invoke-virtual {p0, v2, v3}, Landroid/view/View;->setMeasuredDimension(II)V
+                    return-void
+                """.trimIndent(), ExternalLabel("native_measure", original))
+            }
+            layoutFingerprint.method.apply {
+                val original = getInstruction(0)
+                if (implementation!!.registerCount - 6 < 1) throw PatchException("Insufficient layout scratch registers")
+                addInstructionsWithLabels(0, """
+                    invoke-static {p0}, $EXTENSION->layout$suffix(Landroid/view/ViewGroup;)Z
+                    move-result v0
+                    if-eqz v0, :native_layout
+                    return-void
+                """.trimIndent(), ExternalLabel("native_layout", original))
+            }
         }
 
         val view = mutableClassDefBy(TWEET_VIEW)

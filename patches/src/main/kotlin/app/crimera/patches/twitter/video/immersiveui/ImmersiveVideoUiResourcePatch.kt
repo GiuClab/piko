@@ -13,10 +13,29 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             actions.setAttribute("android:layout_height", "wrap_content")
             actions.setAttribute("android:layout_marginHorizontal", "0dp")
             actions.setAttribute("android:layout_marginEnd", "4dp")
-            actions.setAttribute("android:layout_marginBottom", "64dp")
+            actions.setAttribute("android:layout_marginBottom", "16dp")
             actions.removeAttribute("app:layout_constraintStart_toStartOf")
             actions.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
-            actions.setAttribute("app:layout_constraintBottom_toBottomOf", "parent")
+            actions.removeAttribute("app:layout_constraintBottom_toBottomOf")
+            actions.setAttribute("app:layout_constraintBottom_toTopOf", "@id/playback_speed_button")
+
+            // Keep the playback toolbar on the left, below the last social action.
+            for ((id, previous) in listOf(
+                "playback_speed_button" to null,
+                "video_mute_toggle" to "playback_speed_button",
+                "video_pip_button" to "video_mute_toggle",
+            )) {
+                node(id).apply {
+                    removeAttribute("app:layout_constraintEnd_toStartOf")
+                    removeAttribute("app:layout_constraintEnd_toEndOf")
+                    if (previous == null) {
+                        setAttribute("app:layout_constraintStart_toStartOf", "parent")
+                        setAttribute("android:layout_marginStart", "12dp")
+                    } else {
+                        setAttribute("app:layout_constraintStart_toEndOf", "@id/$previous")
+                    }
+                }
+            }
 
             val text = node("tweet_content_text")
             text.removeAttribute("app:layout_constraintBottom_toTopOf")
