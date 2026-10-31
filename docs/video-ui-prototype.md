@@ -1,23 +1,31 @@
 # Experimental vertical video controls
 
-Current bundle: **3.11.0-video-ui.4**, based on upstream Piko `v3.11.0-dev.3`.
+Current bundle: **3.11.0-video-ui.5**, based on upstream Piko `v3.11.0-dev.3`.
 Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41192271872)
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41204013623)
 
 ## Current behavior
 
-- A single video tap confirms through X's actual `video_play_toggle` button after
-  the double-tap timeout. Replaying a native surface tap did not pause video on
-  device, so the implementation now invokes the native playback action directly.
-- A double tap invokes the bound native like view. Already-liked posts stay liked;
-  moves, long presses, multiple pointers and post changes cancel the gesture.
-- Main icons are 34dp with counts underneath in 64dp cells. Like is first among
-  the social actions. Native listeners, checked state and count views are retained.
-- The action column ends above the playback toolbar. Speed, mute and PiP are
-  grouped on the left below it, rather than overlapping share and download.
-- A person/plus Follow control appears above the social actions. The original
-  author's avatar remains in the footer header; it has not been moved to the rail.
+- Filled white heart, comment bubble, bookmark and share arrow, styled for the
+  vertical video rail. Native checked state makes the heart pink/red and a saved
+  bookmark yellow. Repost and download remain available as X actions.
+- The author's already loaded native profile image is mirrored at the top of the
+  rail, with a pink Follow badge. Tapping the photo invokes the native profile
+  listener; the badge and Follow label keep the verified follow-only action.
+- The native progress widget is anchored to both screen edges, independently of
+  the profile header and action rail. Its duration label and scrubbing remain native.
+- The footer shows the profile display name only. The post description and handle
+  are hidden in this portrait player, not removed from the post's underlying data.
+- A portrait-only header copy preserves all native binding IDs. The transparent,
+  one-pixel handle view remains available to the follow identity check. The original
+  footer avatar remains bound and sized but transparent, supplying the image and
+  original profile listener for the right-hand avatar.
+- A lifecycle-scoped pre-draw policy reasserts hidden descriptions after recycled
+  views are rebound. It stores weak references and removes its listener on detach.
+- Single-tap play/pause, double-tap likes, native counts, downloads and follow status
+  retain the previous iteration's behavior. Native action listeners are not replaced
+  by the icon changes. The changes apply to the portrait immersive player only.
 
 ## Follow behavior
 
@@ -44,23 +52,21 @@ was sent by the development or APK verification tools.
 
 ## Verification
 
-- Gesture bookkeeping tests passed, including rejection at UP without a preceding
-  MOVE event and recognition at the second DOWN before native seeking can run.
-- Relationship tests passed: unknown, followed-by-only, already followed, pending,
-  blocked and own-account states are distinguished.
-- Java extensions and Kotlin patches compiled successfully on GitHub Actions.
-- Morphe Desktop applied 73 patches to the original matching APKM with no failed
-  patches and rebuilt the full DEX/resources successfully. This unsigned diagnostic
-  APK is not an installation deliverable; patching on device retains the existing
-  Morphe signing key.
-- This is still an experimental layout. Visual behavior, real playback and account
-  actions must be checked on device. The first device test confirmed the double
-  tap, but exposed the single-tap and horizontal-icon-layout issues fixed here.
+- The preceding version was confirmed on device to have working playback gestures,
+  likes and follow. This iteration changes presentation and adds photo navigation.
+- Gesture and relationship-state tests passed in GitHub Actions for this version.
+- Java extensions and Kotlin patches compiled successfully; the `.mpp` artifact was
+  generated. The final tested source is commit `29844960f9f2372f5b8c5e1e7907be48a0c043f2`.
+- APK application/rebuilding was not repeated for this version because the original
+  APKM is no longer present in the current workspace. The preceding version's
+  successful rebuild does not establish this version's resource compatibility.
+- Device QA is required: filled/checked icons, avatar after scrolling, photo versus
+  badge taps, full-width seeking and name-only footer after recycled views rebind.
 
 ## Aggiornamento sul telefono
 
-1. Scarica `piko-patch-bundle-4` dalla compilazione collegata sopra ed estrai
-   `patches-3.11.0-video-ui.4.mpp`.
+1. Scarica `piko-patch-bundle-6` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.5.mpp`.
 2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
    seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
 3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
