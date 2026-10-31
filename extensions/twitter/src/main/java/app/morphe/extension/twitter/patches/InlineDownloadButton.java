@@ -206,6 +206,10 @@ public class InlineDownloadButton {
     }
 
     private static void wrapWithDownloadButton(ViewGroup inlineActionBar) {
+        if (ImmersiveVideoUi.isRail(inlineActionBar)) {
+            ImmersiveVideoUi.addDownloadButton(inlineActionBar);
+            return;
+        }
         ViewParent currentParent = inlineActionBar.getParent();
         if (currentParent instanceof LinearLayout) {
             LinearLayout existingWrapper = (LinearLayout) currentParent;

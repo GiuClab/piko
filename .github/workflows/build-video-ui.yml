@@ -1,0 +1,66 @@
+name: Build video UI
+
+on:
+  push:
+    branches: [experimental/video-ui]
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: 'Branch, tag or commit to compile'
+        required: true
+        default: experimental/video-ui
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout selected source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref || github.sha }}
+          persist-credentials: false
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Record source version
+        run: |
+          git rev-parse HEAD > build-source.txt
+          cat gradle.properties >> build-source.txt
+
+      - name: Test gesture tracking
+        run: |
+          mkdir -p "$RUNNER_TEMP/video-ui-tests"
+          javac -d "$RUNNER_TEMP/video-ui-tests" extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoTapTracker.java tests/video-ui/VideoTapTrackerTest.java
+          java -cp "$RUNNER_TEMP/video-ui-tests" app.morphe.extension.twitter.patches.VideoTapTrackerTest
+
+      - name: Build patch bundle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew clean buildAndroid --stacktrace
+
+      - name: Upload patch bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: piko-patch-bundle-${{ github.run_number }}
+          path: patches/build/libs/*.mpp
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload source identification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: piko-source-${{ github.run_number }}
+          path: build-source.txt
+          if-no-files-found: warn
+          retention-days: 14
