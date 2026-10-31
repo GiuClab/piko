@@ -1,70 +1,76 @@
 # Experimental vertical video controls
 
-Base: Piko `v3.11.0-dev.3`, X `12.19.1-release.0` (`312191000`).
+Current bundle: **3.11.0-video-ui.4**, based on upstream Piko `v3.11.0-dev.3`.
+Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-This opt-in patch changes only the portrait immersive video player. It keeps native
-X action views, their click listeners and the currently bound tweet. It moves the
-action bar to the right and adds double-tap-to-like with a heart overlay. A double
-tap never intentionally removes a like. Native downloader support is retained.
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41192271872)
 
-This is the first prototype, not the completed TikTok-style interface. The avatar
-remains in the original header; the direct Follow button and followed status are
-not implemented. Counts still use X's original action-view layout.
+## Current behavior
 
-## Build
+- A single video tap confirms through X's actual `video_play_toggle` button after
+  the double-tap timeout. Replaying a native surface tap did not pause video on
+  device, so the implementation now invokes the native playback action directly.
+- A double tap invokes the bound native like view. Already-liked posts stay liked;
+  moves, long presses, multiple pointers and post changes cancel the gesture.
+- Main icons are 34dp with counts underneath in 64dp cells. Like is first among
+  the social actions. Native listeners, checked state and count views are retained.
+- The action column ends above the playback toolbar. Speed, mute and PiP are
+  grouped on the left below it, rather than overlapping share and download.
+- A person/plus Follow control appears above the social actions. The original
+  author's avatar remains in the footer header; it has not been moved to the rail.
 
-The `Build video UI` workflow runs on pushes to `experimental/video-ui` and uploads
-`patches/build/libs/*.mpp`. It first runs the standalone gesture tests. The output
-is a **patch bundle**, not an installable X APK. The upstream `Release` workflow is
-not needed. No signing keys, login tokens or original X APKs are committed here.
+## Follow behavior
 
-Select `Experimental vertical video controls` explicitly when applying this
-bundle with Morphe to the original matching X APKM. The patch is disabled by
-default. Keep other desired Piko patches selected. The immersive player must be
-enabled in Piko settings. Portrait mode is the only changed orientation.
+The control reads the activity-scoped native friendship cache, with a fallback to
+that account's cached author record. It verifies that the native author ID and
+screen name agree with the header currently shown in this video.
 
-## Required verification before calling this usable
+It displays `Segui`, `Segui già`, `Richiesta`, `Bloccato`, `Tu`, or `Stato…`. A cache
+miss or unknown native flag is never treated as proof that a profile is unfollowed.
+The control is disabled until a known eligible state is available. Even a disabled
+status tile absorbs touches instead of triggering video gestures underneath it.
 
-- Build the Java extensions and Kotlin patches.
-- Apply the bundle to the exact X APKM locally; do not upload the original APKM to
-  this public repository.
-- Check the resulting DEX and resource output, including hook register counts.
-- On device: advance through several videos and verify every action targets the
-  visible tweet, including reposts and videos with multiple media items.
-- Check counts, long labels, small screens, large font settings and rotation.
-- Check single tap, double tap, repeated double tap, drag, long press, multi-touch,
-  playback controls and scrubbing; already-liked videos must stay liked.
-- Verify native downloads, bookmarks, replies, reposts and sharing still work.
+The click rechecks the account, author and relationship. It queues X's native
+**follow-only** request; it does not use the native follow/unfollow toggle action.
+`Invio…` is shown while waiting. A followed state is published into the native cache
+only after the request supplies a successful matching user response. Protected
+profile requests remain `Richiesta`; native errors and restrictions remain handled
+by X. There is no automatic account action when opening or scrolling videos.
 
-A successful source build does not establish successful APK patching or on-device
-behavior. Those checks must be reported separately.
+This runtime account behavior has not been exercised in the container. Device
+verification is required, including known-followed, not-followed, protected,
+blocked and own profiles, reposts and account switching. No real follow request
+was sent by the development or APK verification tools.
 
-## Validation performed, 2026-10-31
+## Verification
 
-Source commit: `560f5f898e3c06dd72fb6775f147f8d68d449055`.
-[Successful build and downloadable bundle](https://github.com/gcapurro89/piko/actions/runs/41188348289).
+- Gesture bookkeeping tests passed, including rejection at UP without a preceding
+  MOVE event and recognition at the second DOWN before native seeking can run.
+- Relationship tests passed: unknown, followed-by-only, already followed, pending,
+  blocked and own-account states are distinguished.
+- Java extensions and Kotlin patches compiled successfully on GitHub Actions.
+- Morphe Desktop applied 73 patches to the original matching APKM with no failed
+  patches and rebuilt the full DEX/resources successfully. This unsigned diagnostic
+  APK is not an installation deliverable; patching on device retains the existing
+  Morphe signing key.
+- This is still an experimental layout. Visual behavior, real playback and account
+  actions must be checked on device. The first device test confirmed the double
+  tap, but exposed the single-tap and horizontal-icon-layout issues fixed here.
 
-- Standalone gesture cases passed, including post changes, swipes, long presses,
-  cancelled gestures and recognition at second DOWN before native double-tap seeking.
-- Morphe Desktop 1.20.0 applied all 72 default Piko patches plus this patch to the
-  supplied original X `12.19.1-release.0` APKM: 73 applied, zero failed.
-- Full DEX and resource rebuilding succeeded. The resulting diagnostic APK is
-  unsigned; it is not the installation deliverable.
-- Single video taps are deferred for the platform double-tap timeout. A completed
-  double tap suppresses the native tap gesture and invokes the native like view.
-- Device behavior remains unverified. Compilation and APK rebuilding do not
-  establish correct visual layout, playback or live account behavior.
+## Aggiornamento sul telefono
 
-## Prima prova sul telefono
+1. Scarica `piko-patch-bundle-4` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.4.mpp`.
+2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
+   seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
+3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
+   abituali, e applicale all'APKM originale della versione corrispondente. Il
+   pacchetto contiene anche le patch originali: non combinarlo con una seconda Piko.
+4. Installa come aggiornamento usando il Morphe già presente sul telefono e la
+   stessa chiave di firma. Il file `.mpp` è un bundle di patch, non un APK installabile.
+5. Controlla tocco singolo, doppio tocco, scorrimento, spazio fra i comandi e stato
+   su un profilo che segui già. Prova Segui soltanto su un profilo che vuoi seguire.
 
-1. Scarica `piko-patch-bundle-2` dalla compilazione collegata sopra ed estrai il `.mpp`.
-2. In Morphe apri **Fonti → + → Locale** e importa il file.
-3. Per X usa questa fonte locale: contiene anche le patch originali di Piko.
-4. In modalità esperto seleziona **Experimental vertical video controls**, oltre
-   alle patch abituali, e applicale all'APKM originale della versione corrispondente.
-5. Usa il Morphe già presente sul telefono per firmare l'aggiornamento. Se
-   l'installazione richiede di disinstallare X, fermati e verifica prima la firma.
-6. Prova disposizione dei comandi, scorrimento, tocco singolo e doppio tocco.
-   Un video già apprezzato deve restare tale dopo altri doppi tocchi.
-
-Il pulsante Segui e l'avatar nella colonna destra non sono ancora implementati.
+The `Build video UI` workflow uploads `.mpp` artifacts; the upstream `Release`
+workflow is not required. Original X APKMs, signed X APKs and signing keys are not
+stored in this public repository.
