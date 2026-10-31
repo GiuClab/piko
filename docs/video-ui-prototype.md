@@ -1,9 +1,9 @@
 # Experimental vertical video controls
 
-Current bundle: **3.11.0-video-ui.6**, based on upstream Piko `v3.11.0-dev.3`.
+Current bundle: **3.11.0-video-ui.7**, based on upstream Piko `v3.11.0-dev.3`.
 Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41206617417)
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41207995237)
 
 ## Current behavior
 
@@ -13,9 +13,13 @@ Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 - The author's already loaded native profile image is mirrored at the top of the
   rail, with a pink Follow badge. Tapping the photo invokes the native profile
   listener; the badge and Follow label keep the verified follow-only action.
+- The rail is 56dp wide with no end margin; icon sizes remain unchanged.
 - Native play/pause occupies a 48dp cell on the left of the progress row. The
   progress widget fills the remaining width to the right screen edge; duration and
-  scrubbing remain native.
+  scrubbing remain native. The runtime policy centers play/pause against the
+  actual native AbsSeekBar track rather than its time-label wrapper, clears track
+  horizontal padding and fits it to its immediate parent. Unknown track types
+  retain native behavior; device confirmation is required.
 - The lower post menu is proxied in the right-hand rail below Download. It invokes
   the current video's original bound menu listener; the footer original is transparent.
 - The footer shows the profile display name only. The post description and handle
@@ -58,11 +62,11 @@ was sent by the development or APK verification tools.
 ## Verification
 
 - The preceding version was confirmed on device to have working playback gestures,
-  likes and follow. This iteration addresses auto-hide, playback-row overlap and
-  post-menu placement.
+  likes and follow. This iteration adjusts the rail end spacing, progress width and alignment
+  against the actual progress track.
 - Gesture and relationship-state tests passed in GitHub Actions for this version.
 - Java extensions and Kotlin patches compiled successfully; the `.mpp` artifact was
-  generated. The final tested source is commit `9635a9d0eb8c43dab6995500f040dc9170195ab5`.
+  generated. The final tested source is commit `ebe2751bd708e9f497eacc3ef0e27d470af546d3`.
 - APK application/rebuilding was not repeated for this version because the original
   APKM is no longer present in the current workspace. The preceding version's
   successful rebuild does not establish this version's resource compatibility.
@@ -72,8 +76,8 @@ was sent by the development or APK verification tools.
 
 ## Aggiornamento sul telefono
 
-1. Scarica `piko-patch-bundle-7` dalla compilazione collegata sopra ed estrai
-   `patches-3.11.0-video-ui.6.mpp`.
+1. Scarica `piko-patch-bundle-8` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.7.mpp`.
 2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
    seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
 3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
