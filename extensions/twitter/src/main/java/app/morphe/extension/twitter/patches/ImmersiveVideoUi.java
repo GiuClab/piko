@@ -255,6 +255,8 @@ public final class ImmersiveVideoUi {
             return 0;
         }
         if (state == null) { state = new TouchState(); TOUCH.put(root, state); }
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) state.nativeVertical = false;
+        else if (state.nativeVertical) return 0;
         if (event.getPointerCount() != 1 || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
             resetTouch(root, state);
             return 0;
@@ -324,8 +326,8 @@ public final class ImmersiveVideoUi {
                         return 2;
                     }
                     if (state.surfaceDown && VideoScrubMath.vertical(dx, dy, config.getScaledTouchSlop())) {
-                        state.surfaceDown = false;
-                        disallowInterception(root, false);
+                        handOffVertical(root, state, event);
+                        return 1;
                     }
                     state.tracker.move(x, y, config.getScaledTouchSlop());
                     // Do not expose tentative horizontal moves to X's surface-dismiss listener.
@@ -405,6 +407,42 @@ public final class ImmersiveVideoUi {
 
     private static void recycleDown(TouchState state) {
         if (state.downEvent != null) { state.downEvent.recycle(); state.downEvent = null; }
+    }
+
+    /** Restart native vertical recognition with its original DOWN, not a truncated MOVE stream. */
+    private static void handOffVertical(ViewGroup root, TouchState state, MotionEvent move) {
+        state.surfaceDown = false;
+        state.nativeVertical = true;
+        state.secondTap = false;
+        state.tracker.cancel();
+        flushPending(root, state, false);
+        disallowInterception(root, false);
+        ViewGroup target = root;
+        // Include the native pager and dismissal ancestors, stopping at the activity content.
+        for (View current = root; current.getParent() instanceof ViewGroup; ) {
+            current = (View) current.getParent();
+            target = (ViewGroup) current;
+            if (current.getId() == android.R.id.content) break;
+        }
+        if (state.downEvent == null) return;
+        state.replaying = true;
+        try {
+            dispatchAt(target, move, MotionEvent.ACTION_CANCEL);
+            dispatchAt(target, state.downEvent, MotionEvent.ACTION_DOWN);
+            dispatchAt(target, move, MotionEvent.ACTION_MOVE);
+        } finally {
+            state.replaying = false;
+            recycleDown(state);
+        }
+    }
+
+    private static void dispatchAt(ViewGroup target, MotionEvent source, int action) {
+        int[] position = new int[2];
+        target.getLocationOnScreen(position);
+        MotionEvent copy = MotionEvent.obtain(source);
+        copy.setAction(action);
+        copy.setLocation(source.getRawX() - position[0], source.getRawY() - position[1]);
+        try { target.dispatchTouchEvent(copy); } finally { copy.recycle(); }
     }
 
     /** Native CANCEL may release interception; restore ownership before the next MOVE. */
@@ -548,7 +586,7 @@ public final class ImmersiveVideoUi {
         MotionEvent downEvent, pendingDown, pendingUp;
         Object pendingPost;
         Runnable pendingReplay;
-        boolean secondTap, replaying, reportedFailure, surfaceDown, scrubbing, horizontalLocked;
+        boolean secondTap, replaying, reportedFailure, surfaceDown, scrubbing, horizontalLocked, nativeVertical;
         float startX, startY, scrubWidth;
         int startProgress;
         java.lang.ref.WeakReference<android.widget.AbsSeekBar> seekTrack;
