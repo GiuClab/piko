@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Filled video icons. Native action views still own click listeners, counts and checked states. */
 final class VideoActionIcon extends Drawable {
-    private static final int HEART = 0, COMMENT = 1, REPOST = 2, BOOKMARK = 3, SHARE = 4, DOWNLOAD = 5;
+    private static final int HEART = 0, COMMENT = 1, REPOST = 2, BOOKMARK = 3, SHARE = 4, DOWNLOAD = 5, MORE = 6;
     private static final Map<Class<?>, Method> GETTERS = new ConcurrentHashMap<>();
     private final int kind;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -44,6 +44,7 @@ final class VideoActionIcon extends Drawable {
     }
 
     static Drawable download() { return new VideoActionIcon(DOWNLOAD); }
+    static Drawable more() { return new VideoActionIcon(MORE); }
 
     private static int kind(String name) {
         switch (name) {
@@ -109,6 +110,10 @@ final class VideoActionIcon extends Drawable {
                 canvas.drawCircle(50, 47, 6, paint);
                 canvas.drawCircle(70, 47, 6, paint);
             }
+        } else if (kind == MORE) {
+            canvas.drawCircle(50, 20, 6, paint);
+            canvas.drawCircle(50, 50, 6, paint);
+            canvas.drawCircle(50, 80, 6, paint);
         } else {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(8);

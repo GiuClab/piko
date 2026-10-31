@@ -34,6 +34,11 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
                 removeAttribute("app:layout_constraintBottom_toBottomOf")
                 setAttribute("app:layout_constraintTop_toTopOf", "parent")
             }
+            header("tweet_curation_action").apply {
+                setAttribute("android:alpha", "0")
+                setAttribute("android:layout_width", "1px")
+                setAttribute("android:importantForAccessibility", "no")
+            }
             header("name").apply {
                 removeAttribute("app:layout_constraintStart_toEndOf")
                 setAttribute("app:layout_constraintStart_toStartOf", "parent")
@@ -77,18 +82,22 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
 
             node("tweet_header").setAttribute("layout", "@layout/piko_video_header")
             val seek = node("seekbar")
-            seek.removeAttribute("app:layout_constraintStart_toEndOf")
+            seek.removeAttribute("app:layout_constraintStart_toStartOf")
+            seek.setAttribute("app:layout_constraintStart_toEndOf", "@id/video_play_toggle")
             seek.removeAttribute("app:layout_constraintEnd_toEndOf")
-            seek.setAttribute("app:layout_constraintStart_toStartOf", "parent")
+            seek.setAttribute("android:layout_marginStart", "0dp")
             seek.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
             seek.setAttribute("android:layout_marginHorizontal", "0dp")
             seek.setAttribute("android:paddingHorizontal", "0dp")
             // The native widget contains both its progress track and time label.
             node("video_play_toggle").apply {
-                setAttribute("android:layout_width", "0dp")
+                setAttribute("android:layout_width", "48dp")
                 setAttribute("android:layout_height", "48dp")
-                setAttribute("android:alpha", "0")
-                setAttribute("android:importantForAccessibility", "no")
+                setAttribute("android:alpha", "1")
+                setAttribute("android:importantForAccessibility", "auto")
+                setAttribute("android:layout_marginStart", "0dp")
+                removeAttribute("app:layout_constraintStart_toStartOf")
+                setAttribute("app:layout_constraintStart_toStartOf", "parent")
             }
             node("tweet_inline_actions").setAttribute("android:importantForAccessibility", "auto")
 

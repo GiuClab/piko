@@ -39,6 +39,7 @@ public final class ImmersiveVideoUi {
     private static final Map<Class<?>, Map<String, Field>> FIELDS = new ConcurrentHashMap<>();
     private static final Map<View, TouchState> TOUCH = new WeakHashMap<>();
     private static final String DOWNLOAD_TAG = "piko_video_rail_download";
+    private static final String MORE_TAG = "piko_video_rail_more";
 
     // Rewritten from the target APK, rather than assuming obfuscated field names.
     private static String toggleFieldName() { return "pikoVideoToggleField"; }
@@ -61,6 +62,7 @@ public final class ImmersiveVideoUi {
         if (!isRail(bar)) return -1;
         VideoChromePolicy.ensure(bar);
         VideoFollowControl.ensure(bar);
+        ensureMoreButton(bar);
         VideoActionIcon.install(bar);
         int width = View.resolveSize(dp(bar, 72), widthSpec);
         int count = 0;
@@ -101,6 +103,7 @@ public final class ImmersiveVideoUi {
     private static int actionOrder(View view) {
         if (VideoFollowControl.TAG.equals(view.getTag())) return -1;
         if (DOWNLOAD_TAG.equals(view.getTag())) return 9;
+        if (MORE_TAG.equals(view.getTag())) return 10;
         switch (name(view)) {
             case "inline_like": return 0;
             case "inline_reply": return 1;
@@ -218,6 +221,26 @@ public final class ImmersiveVideoUi {
             return true;
         });
         bar.addView(button, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 64)));
+    }
+
+    private static void ensureMoreButton(ViewGroup bar) {
+        if (bar.findViewWithTag(MORE_TAG) != null) return;
+        ImageView more = new ImageView(bar.getContext());
+        more.setTag(MORE_TAG);
+        more.setImageDrawable(VideoActionIcon.more());
+        more.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        more.setPadding(dp(bar, 19), dp(bar, 15), dp(bar, 19), dp(bar, 15));
+        more.setContentDescription("Altre opzioni del post");
+        more.setFocusable(true);
+        more.setOnClickListener(v -> {
+            View chrome = bar;
+            while (chrome.getParent() instanceof View && !"chrome_portrait".equals(name(chrome))) {
+                chrome = (View) chrome.getParent();
+            }
+            View nativeMore = find(chrome, "tweet_curation_action");
+            if (nativeMore != null && nativeMore.isEnabled()) nativeMore.performClick();
+        });
+        bar.addView(more, new ViewGroup.LayoutParams(dp(bar, 72), dp(bar, 64)));
     }
 
     /** 0: pass through; 1: consume; 2: consume and cancel the native gesture. */
