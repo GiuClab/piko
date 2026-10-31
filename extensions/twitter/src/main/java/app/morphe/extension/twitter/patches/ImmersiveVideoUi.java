@@ -277,10 +277,14 @@ public final class ImmersiveVideoUi {
                             controlHit(root, root, video, (int) x, (int) y)) {
                         flushPending(root, state, true);
                         state.tracker.cancel();
+                        state.surfaceDown = false;
                         recycleDown(state);
                         state.secondTap = false;
                         return 0;
                     }
+                    state.surfaceDown = true;
+                    state.startX = x;
+                    state.startY = y;
                     state.tracker.down(state.post, event.getEventTime(), x, y);
                     state.secondTap = state.pendingUp != null && state.tracker.isSecondDown(
                             config.getScaledDoubleTapSlop(), ViewConfiguration.getDoubleTapTimeout());
@@ -295,9 +299,36 @@ public final class ImmersiveVideoUi {
                     state.downEvent = MotionEvent.obtain(event);
                     return 0;
                 case MotionEvent.ACTION_MOVE:
+                    if (state.scrubbing) { scrub(state, event, MotionEvent.ACTION_MOVE); return 1; }
+                    float dx = x - state.startX, dy = y - state.startY;
+                    if (state.surfaceDown && !state.secondTap && VideoScrubMath.starts(dx, dy, config.getScaledTouchSlop())) {
+                        android.widget.AbsSeekBar track = VideoChromePolicy.findTrack(find(chrome, "seekbar"));
+                        if (track != null && track.isEnabled() && track.getMax() > 0 && track.getWidth() > 0) {
+                            state.seekTrack = new java.lang.ref.WeakReference<>(track);
+                            state.startProgress = track.getProgress();
+                            state.scrubWidth = Math.max(1, video.getWidth());
+                            state.scrubbing = true;
+                            flushPending(root, state, false);
+                            state.tracker.cancel();
+                            scrub(state, event, MotionEvent.ACTION_DOWN);
+                            scrub(state, event, MotionEvent.ACTION_MOVE);
+                            root.getParent().requestDisallowInterceptTouchEvent(true);
+                            return 2;
+                        }
+                    }
+                    if (Math.abs(dy) > config.getScaledTouchSlop() && Math.abs(dy) >= Math.abs(dx)) state.surfaceDown = false;
                     state.tracker.move(x, y, config.getScaledTouchSlop());
                     return state.secondTap ? 1 : 0;
                 case MotionEvent.ACTION_UP:
+                    state.surfaceDown = false;
+                    if (state.scrubbing) {
+                        scrub(state, event, MotionEvent.ACTION_UP);
+                        state.scrubbing = false;
+                        state.seekTrack = null;
+                        recycleDown(state);
+                        root.getParent().requestDisallowInterceptTouchEvent(false);
+                        return 1;
+                    }
                     boolean wasTracking = state.tracker.isTracking();
                     boolean doubleTap = state.tracker.up(event.getEventTime(), x, y,
                             config.getScaledTouchSlop(), config.getScaledDoubleTapSlop(),
@@ -346,11 +377,31 @@ public final class ImmersiveVideoUi {
         }
     }
 
+    /** Use the native scrubber's touch callbacks so playback and time labels update together. */
+    private static void scrub(TouchState state, MotionEvent source, int action) {
+        android.widget.AbsSeekBar track = state.seekTrack == null ? null : state.seekTrack.get();
+        if (track == null) return;
+        float fraction = VideoScrubMath.fraction(state.startProgress, track.getMax(),
+                action == MotionEvent.ACTION_DOWN ? 0 : source.getRawX() - state.startX, state.scrubWidth);
+        float localX = track.getPaddingLeft() + fraction * (track.getWidth() - track.getPaddingLeft() - track.getPaddingRight());
+        if (track.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) localX = track.getWidth() - localX;
+        MotionEvent touch = MotionEvent.obtain(source.getDownTime(), source.getEventTime(), action,
+                localX, track.getHeight() / 2f, 0);
+        try { track.dispatchTouchEvent(touch); } finally { touch.recycle(); }
+    }
+
     private static void recycleDown(TouchState state) {
         if (state.downEvent != null) { state.downEvent.recycle(); state.downEvent = null; }
     }
 
     private static void resetTouch(ViewGroup root, TouchState state) {
+        if (state.scrubbing) {
+            MotionEvent cancel = MotionEvent.obtain(0, android.os.SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, 0, 0, 0);
+            try { scrub(state, cancel, MotionEvent.ACTION_CANCEL); } finally { cancel.recycle(); }
+            if (root.getParent() != null) root.getParent().requestDisallowInterceptTouchEvent(false);
+        }
+        state.scrubbing = state.surfaceDown = false;
+        state.seekTrack = null;
         flushPending(root, state, false);
         recycleDown(state);
         state.tracker.cancel();
@@ -471,7 +522,10 @@ public final class ImmersiveVideoUi {
         MotionEvent downEvent, pendingDown, pendingUp;
         Object pendingPost;
         Runnable pendingReplay;
-        boolean secondTap, replaying, reportedFailure;
+        boolean secondTap, replaying, reportedFailure, surfaceDown, scrubbing;
+        float startX, startY, scrubWidth;
+        int startProgress;
+        java.lang.ref.WeakReference<android.widget.AbsSeekBar> seekTrack;
     }
 
     private static final class Heart extends Drawable {

@@ -40,9 +40,11 @@ jobs:
       - name: Test gesture tracking
         run: |
           mkdir -p "$RUNNER_TEMP/video-ui-tests"
-          javac -d "$RUNNER_TEMP/video-ui-tests" extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoTapTracker.java extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoFollowState.java tests/video-ui/VideoTapTrackerTest.java tests/video-ui/VideoFollowStateTest.java
+          javac -d "$RUNNER_TEMP/video-ui-tests" extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoTapTracker.java extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoFollowState.java tests/video-ui/VideoTapTrackerTest.java tests/video-ui/VideoFollowStateTest.java extensions/twitter/src/main/java/app/morphe/extension/twitter/patches/VideoScrubMath.java tests/video-ui/VideoScrubMathTest.java
           java -cp "$RUNNER_TEMP/video-ui-tests" app.morphe.extension.twitter.patches.VideoTapTrackerTest
           java -cp "$RUNNER_TEMP/video-ui-tests" app.morphe.extension.twitter.patches.VideoFollowStateTest
+
+          java -cp "$RUNNER_TEMP/video-ui-tests" app.morphe.extension.twitter.patches.VideoScrubMathTest
 
       - name: Build patch bundle
         env:

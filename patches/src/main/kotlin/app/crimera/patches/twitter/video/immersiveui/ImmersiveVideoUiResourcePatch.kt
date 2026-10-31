@@ -58,7 +58,8 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             actions.setAttribute("android:layout_marginEnd", "0dp")
             actions.setAttribute("android:layout_marginBottom", "16dp")
             actions.removeAttribute("app:layout_constraintStart_toStartOf")
-            actions.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
+            actions.removeAttribute("app:layout_constraintEnd_toEndOf")
+            actions.setAttribute("app:layout_constraintStart_toStartOf", "parent")
             actions.removeAttribute("app:layout_constraintBottom_toBottomOf")
             actions.setAttribute("app:layout_constraintBottom_toTopOf", "@id/playback_speed_button")
 
@@ -92,7 +93,7 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             seek.setAttribute("android:layout_marginHorizontal", "0dp")
             seek.setAttribute("android:paddingHorizontal", "0dp")
             for (edge in listOf("Left", "Right", "Start", "End")) {
-                seek.setAttribute("android:layout_margin$edge", "0dp")
+                seek.setAttribute("android:layout_margin$edge", if (edge == "End" || edge == "Right") "12dp" else "0dp")
                 seek.setAttribute("android:padding$edge", "0dp")
             }
             // The native widget contains both its progress track and time label.
@@ -116,7 +117,7 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             for (id in listOf("tweet_content_text", "tweet_header")) {
                 node(id).apply {
                     removeAttribute("app:layout_constraintEnd_toEndOf")
-                    setAttribute("app:layout_constraintEnd_toStartOf", "@id/tweet_inline_actions")
+                    setAttribute("app:layout_constraintEnd_toEndOf", "parent")
                     setAttribute("android:layout_marginHorizontal", "12dp")
                 }
             }

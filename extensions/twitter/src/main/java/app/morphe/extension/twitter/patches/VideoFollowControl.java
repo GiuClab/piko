@@ -223,7 +223,7 @@ final class VideoFollowControl extends LinearLayout {
             Object request = requestType.getConstructor(Context.class, userIdentifier, long.class,
                     Class.forName("com.twitter.model.core.entity.ad.h")).newInstance(
                     getContext().getApplicationContext(), fresh.actor, fresh.author, null);
-            Pending pending = new Pending(fresh, request);
+            Pending pending = new Pending(fresh, request, this);
             if (IN_FLIGHT.putIfAbsent(fresh.key(), pending) != null) return;
             try {
                 Class<?> clientType = Class.forName("com.twitter.async.http.g");
@@ -234,7 +234,7 @@ final class VideoFollowControl extends LinearLayout {
                 IN_FLIGHT.remove(fresh.key(), pending);
                 throw e;
             }
-            MAIN.postDelayed(pending, 500);
+            MAIN.postDelayed(pending, 100);
             update();
         } catch (ReflectiveOperationException | IllegalStateException e) {
             Logger.printException(() -> "Native video follow request could not be started", e);
@@ -330,7 +330,11 @@ final class VideoFollowControl extends LinearLayout {
         final Data data;
         final Object request;
         final long deadline = SystemClock.uptimeMillis() + 30000;
-        Pending(Data data, Object request) { this.data = data; this.request = request; }
+        final java.lang.ref.WeakReference<VideoFollowControl> control;
+        Pending(Data data, Object request, VideoFollowControl view) {
+            this.data = data; this.request = request;
+            control = new java.lang.ref.WeakReference<>(view);
+        }
         @Override public void run() {
             boolean done = false;
             try {
@@ -346,8 +350,12 @@ final class VideoFollowControl extends LinearLayout {
                 done = true;
                 Logger.printException(() -> "Video follow confirmation unavailable", e);
             }
-            if (done || SystemClock.uptimeMillis() >= deadline) IN_FLIGHT.remove(data.key(), this);
-            else MAIN.postDelayed(this, 500);
+            if (done || SystemClock.uptimeMillis() >= deadline) {
+                IN_FLIGHT.remove(data.key(), this);
+                VideoFollowControl view = control.get();
+                if (view != null && view.isAttachedToWindow()) view.update();
+            }
+            else MAIN.postDelayed(this, 100);
         }
     }
 

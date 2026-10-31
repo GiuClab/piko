@@ -95,7 +95,7 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         if (Math.abs(delta) > 0.5f) play.setTranslationY(play.getTranslationY() + delta);
     }
 
-    private static android.widget.AbsSeekBar findTrack(View view) {
+    static android.widget.AbsSeekBar findTrack(View view) {
         if (view instanceof android.widget.AbsSeekBar) return (android.widget.AbsSeekBar) view;
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
