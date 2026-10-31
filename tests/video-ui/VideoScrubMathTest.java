@@ -7,6 +7,10 @@ public final class VideoScrubMathTest {
         check(!VideoScrubMath.starts(10, 2, 8));
         check(!VideoScrubMath.starts(30, 30, 8));
         check(!VideoScrubMath.starts(5, 40, 8));
+        check(VideoScrubMath.vertical(5, 30, 8));
+        check(VideoScrubMath.vertical(5, -30, 8));
+        check(!VideoScrubMath.vertical(30, 5, 8));
+        check(!VideoScrubMath.vertical(2, 4, 8));
         near(VideoScrubMath.fraction(50, 100, 25, 100), .75f);
         near(VideoScrubMath.fraction(50, 100, -25, 100), .25f);
         near(VideoScrubMath.fraction(90, 100, 25, 100), 1f);

@@ -262,7 +262,7 @@ public final class ImmersiveVideoUi {
         View like = find(root, "inline_like");
         ViewGroup bar = findBar(chrome);
         if (like == null || bar == null || !like.isEnabled()) { resetTouch(root, state); return 0; }
-        boolean nativeSuppressed = state.secondTap;
+        boolean nativeSuppressed = state.secondTap || state.horizontalLocked;
         try {
             Object tweet = readField(bar, tweetFieldName());
             if (tweet == null) { resetTouch(root, state); return 0; }
@@ -283,6 +283,9 @@ public final class ImmersiveVideoUi {
                         return 0;
                     }
                     state.surfaceDown = true;
+                    state.horizontalLocked = false;
+                    // Reserve the surface gesture before a parent can begin dismissing the player.
+                    disallowInterception(root, true);
                     state.startX = x;
                     state.startY = y;
                     state.tracker.down(state.post, event.getEventTime(), x, y);
@@ -299,34 +302,44 @@ public final class ImmersiveVideoUi {
                     state.downEvent = MotionEvent.obtain(event);
                     return 0;
                 case MotionEvent.ACTION_MOVE:
-                    if (state.scrubbing) { scrub(state, event, MotionEvent.ACTION_MOVE); return 1; }
+                    if (state.horizontalLocked) {
+                        if (state.scrubbing) scrub(state, event, MotionEvent.ACTION_MOVE);
+                        return 1;
+                    }
                     float dx = x - state.startX, dy = y - state.startY;
                     if (state.surfaceDown && !state.secondTap && VideoScrubMath.starts(dx, dy, config.getScaledTouchSlop())) {
+                        state.horizontalLocked = true;
+                        flushPending(root, state, false);
+                        state.tracker.cancel();
                         android.widget.AbsSeekBar track = VideoChromePolicy.findTrack(find(chrome, "seekbar"));
                         if (track != null && track.isEnabled() && track.getMax() > 0 && track.getWidth() > 0) {
                             state.seekTrack = new java.lang.ref.WeakReference<>(track);
                             state.startProgress = track.getProgress();
                             state.scrubWidth = Math.max(1, video.getWidth());
                             state.scrubbing = true;
-                            flushPending(root, state, false);
-                            state.tracker.cancel();
                             scrub(state, event, MotionEvent.ACTION_DOWN);
                             scrub(state, event, MotionEvent.ACTION_MOVE);
-                            root.getParent().requestDisallowInterceptTouchEvent(true);
-                            return 2;
                         }
+                        // Even an unavailable scrubber must never turn this drag into dismissal.
+                        return 2;
                     }
-                    if (Math.abs(dy) > config.getScaledTouchSlop() && Math.abs(dy) >= Math.abs(dx)) state.surfaceDown = false;
+                    if (state.surfaceDown && VideoScrubMath.vertical(dx, dy, config.getScaledTouchSlop())) {
+                        state.surfaceDown = false;
+                        disallowInterception(root, false);
+                    }
                     state.tracker.move(x, y, config.getScaledTouchSlop());
-                    return state.secondTap ? 1 : 0;
+                    // Do not expose tentative horizontal moves to X's surface-dismiss listener.
+                    return state.secondTap || state.surfaceDown ? 1 : 0;
                 case MotionEvent.ACTION_UP:
                     state.surfaceDown = false;
-                    if (state.scrubbing) {
-                        scrub(state, event, MotionEvent.ACTION_UP);
+                    disallowInterception(root, false);
+                    if (state.horizontalLocked) {
+                        if (state.scrubbing) scrub(state, event, MotionEvent.ACTION_UP);
+                        state.horizontalLocked = false;
                         state.scrubbing = false;
                         state.seekTrack = null;
                         recycleDown(state);
-                        root.getParent().requestDisallowInterceptTouchEvent(false);
+                        disallowInterception(root, false);
                         return 1;
                     }
                     boolean wasTracking = state.tracker.isTracking();
@@ -367,7 +380,7 @@ public final class ImmersiveVideoUi {
                     return 0;
             }
         } catch (Exception e) {
-            boolean consumedSequence = nativeSuppressed || state.secondTap;
+            boolean consumedSequence = nativeSuppressed || state.secondTap || state.horizontalLocked;
             resetTouch(root, state);
             if (!state.reportedFailure) {
                 state.reportedFailure = true;
@@ -394,13 +407,18 @@ public final class ImmersiveVideoUi {
         if (state.downEvent != null) { state.downEvent.recycle(); state.downEvent = null; }
     }
 
+    private static void disallowInterception(ViewGroup root, boolean disallow) {
+        root.requestDisallowInterceptTouchEvent(disallow);
+    }
+
     private static void resetTouch(ViewGroup root, TouchState state) {
         if (state.scrubbing) {
             MotionEvent cancel = MotionEvent.obtain(0, android.os.SystemClock.uptimeMillis(), MotionEvent.ACTION_CANCEL, 0, 0, 0);
             try { scrub(state, cancel, MotionEvent.ACTION_CANCEL); } finally { cancel.recycle(); }
-            if (root.getParent() != null) root.getParent().requestDisallowInterceptTouchEvent(false);
+
         }
-        state.scrubbing = state.surfaceDown = false;
+        disallowInterception(root, false);
+        state.scrubbing = state.surfaceDown = state.horizontalLocked = false;
         state.seekTrack = null;
         flushPending(root, state, false);
         recycleDown(state);
@@ -522,7 +540,7 @@ public final class ImmersiveVideoUi {
         MotionEvent downEvent, pendingDown, pendingUp;
         Object pendingPost;
         Runnable pendingReplay;
-        boolean secondTap, replaying, reportedFailure, surfaceDown, scrubbing;
+        boolean secondTap, replaying, reportedFailure, surfaceDown, scrubbing, horizontalLocked;
         float startX, startY, scrubWidth;
         int startProgress;
         java.lang.ref.WeakReference<android.widget.AbsSeekBar> seekTrack;
