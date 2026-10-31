@@ -6,6 +6,30 @@ import org.w3c.dom.Element
 
 internal val immersiveVideoUiResourcePatch = resourcePatch {
     execute {
+        // Keep the standard header used by landscape and other screens untouched.
+        document("res/layout/tweet_header_layout.xml").use { }
+        get("res/layout/tweet_header_layout.xml").copyTo(
+            get("res/layout").resolve("piko_video_header.xml"), overwrite = true,
+        )
+        document("res/layout/piko_video_header.xml").use { editor ->
+            fun header(id: String) = editor.childNodes.findElementByAttributeValueOrThrow("android:id", "@id/$id") as Element
+            for (id in listOf("username", "text_separator", "promoted_badge", "tweet_edit_badge")) {
+                header(id).setAttribute("android:visibility", "gone")
+            }
+            header("tweet_profile_image_container").apply {
+                setAttribute("android:alpha", "0")
+                setAttribute("android:layout_width", "48dp")
+                setAttribute("android:layout_height", "48dp")
+                removeAttribute("app:layout_constraintEnd_toStartOf")
+                removeAttribute("app:layout_constraintBottom_toBottomOf")
+                setAttribute("app:layout_constraintTop_toTopOf", "parent")
+            }
+            header("name").apply {
+                removeAttribute("app:layout_constraintStart_toEndOf")
+                setAttribute("app:layout_constraintStart_toStartOf", "parent")
+                setAttribute("android:layout_marginStart", "0dp")
+            }
+        }
         document("res/layout/immersive_media_player_chrome_portrait.xml").use { editor ->
             fun node(id: String) = editor.childNodes.findElementByAttributeValueOrThrow("android:id", "@id/$id") as Element
             val actions = node("tweet_inline_actions")
@@ -37,10 +61,29 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
                 }
             }
 
+            node("tweet_header").setAttribute("layout", "@layout/piko_video_header")
+            val seek = node("seekbar")
+            seek.removeAttribute("app:layout_constraintStart_toEndOf")
+            seek.removeAttribute("app:layout_constraintEnd_toEndOf")
+            seek.setAttribute("app:layout_constraintStart_toStartOf", "parent")
+            seek.setAttribute("app:layout_constraintEnd_toEndOf", "parent")
+            seek.setAttribute("android:layout_marginHorizontal", "0dp")
+            seek.setAttribute("android:paddingHorizontal", "0dp")
+            // The native widget contains both its progress track and time label.
+            node("video_play_toggle").apply {
+                setAttribute("android:layout_width", "0dp")
+                setAttribute("android:layout_height", "48dp")
+                setAttribute("android:alpha", "0")
+                setAttribute("android:importantForAccessibility", "no")
+            }
+            node("tweet_inline_actions").setAttribute("android:importantForAccessibility", "auto")
+
             val text = node("tweet_content_text")
             text.removeAttribute("app:layout_constraintBottom_toTopOf")
             text.setAttribute("app:layout_constraintBottom_toBottomOf", "parent")
-            text.setAttribute("android:layout_marginBottom", "16dp")
+            text.setAttribute("android:layout_marginBottom", "0dp")
+            text.setAttribute("android:visibility", "gone")
+            text.setAttribute("android:layout_height", "0dp")
             for (id in listOf("tweet_content_text", "tweet_header")) {
                 node(id).apply {
                     removeAttribute("app:layout_constraintEnd_toEndOf")

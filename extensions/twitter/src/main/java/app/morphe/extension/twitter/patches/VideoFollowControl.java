@@ -18,6 +18,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -36,6 +37,8 @@ final class VideoFollowControl extends LinearLayout {
     private final WeakReference<ViewGroup> barRef;
     private final TextView label;
     private final Glyph glyph = new Glyph();
+    private final AvatarPhoto avatar;
+    private final Badge badge;
     private Data shown;
     private boolean loggedFailure;
     private final Runnable refresh = new Runnable() {
@@ -59,9 +62,18 @@ final class VideoFollowControl extends LinearLayout {
         setOrientation(VERTICAL);
         setGravity(Gravity.CENTER);
         setFocusable(true);
-        ImageView icon = new ImageView(getContext());
-        icon.setImageDrawable(glyph);
-        addView(icon, new LinearLayout.LayoutParams(dp(this, 36), dp(this, 36)));
+        FrameLayout profile = new FrameLayout(getContext());
+        avatar = new AvatarPhoto(getContext());
+        avatar.setContentDescription("Apri il profilo");
+        avatar.setOnClickListener(v -> {
+            View source = sourceAvatar();
+            if (source != null) source.performClick();
+        });
+        profile.addView(avatar, new FrameLayout.LayoutParams(dp(this, 40), dp(this, 40), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        badge = new Badge(getContext());
+        badge.setOnClickListener(v -> follow());
+        profile.addView(badge, new FrameLayout.LayoutParams(dp(this, 18), dp(this, 18), Gravity.BOTTOM | Gravity.END));
+        addView(profile, new LinearLayout.LayoutParams(dp(this, 44), dp(this, 44)));
         label = new TextView(getContext());
         label.setTextColor(Color.WHITE);
         label.setTextSize(11);
@@ -118,6 +130,81 @@ final class VideoFollowControl extends LinearLayout {
         setContentDescription(text + (handle.isEmpty() ? "" : " @" + handle));
         glyph.state = state;
         glyph.invalidateSelf();
+        avatar.invalidate();
+        badge.setEnabled(canFollow);
+        badge.setClickable(true);
+        badge.setContentDescription(text + (handle.isEmpty() ? "" : " @" + handle));
+        badge.invalidate();
+    }
+
+    private View sourceAvatar() {
+        ViewGroup bar = barRef.get();
+        if (bar == null) return null;
+        View chrome = bar;
+        while (chrome.getParent() instanceof View && !"chrome_portrait".equals(resourceName(chrome))) {
+            chrome = (View) chrome.getParent();
+        }
+        return ImmersiveVideoUi.find(chrome, "tweet_profile_image");
+    }
+
+    private final class AvatarPhoto extends View {
+        private final Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
+        AvatarPhoto(Context context) { super(context); }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            View source = sourceAvatar();
+            boolean drawn = false;
+            if (source != null && source.getWidth() > 0 && source.getHeight() > 0) {
+                int save = canvas.save();
+                try {
+                    float pad = dp(this, 1);
+                    Path circle = new Path();
+                    circle.addCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f - pad, Path.Direction.CW);
+                    canvas.clipPath(circle);
+                    canvas.translate(pad, pad);
+                    canvas.scale((getWidth() - 2 * pad) / source.getWidth(), (getHeight() - 2 * pad) / source.getHeight());
+                    // Reuse the already loaded native image. Its footer container is transparent,
+                    // while this source child retains its normal size, data and profile listener.
+                    source.draw(canvas);
+                    drawn = true;
+                } catch (RuntimeException ignored) { }
+                finally { canvas.restoreToCount(save); }
+            }
+            if (!drawn) {
+                glyph.setBounds(0, 0, getWidth(), getHeight());
+                glyph.draw(canvas);
+            }
+            border.setStyle(Paint.Style.STROKE);
+            border.setStrokeWidth(dp(this, 1));
+            border.setColor(Color.WHITE);
+            canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f - dp(this, 1), border);
+        }
+    }
+
+    private final class Badge extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Badge(Context context) { super(context); }
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float cx = getWidth() / 2f, cy = getHeight() / 2f;
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(glyph.state == VideoFollowState.FOLLOWING ? 0xff28ab80 : glyph.state == VideoFollowState.AVAILABLE ? 0xfffe2c55 : 0xff777777);
+            canvas.drawCircle(cx, cy, Math.min(cx, cy), paint);
+            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeWidth(dp(this, 2));
+            if (glyph.state == VideoFollowState.FOLLOWING) {
+                canvas.drawLine(cx - dp(this, 4), cy, cx - dp(this, 1), cy + dp(this, 3), paint);
+                canvas.drawLine(cx - dp(this, 1), cy + dp(this, 3), cx + dp(this, 4), cy - dp(this, 3), paint);
+            } else if (glyph.state == VideoFollowState.REQUESTED) {
+                canvas.drawLine(cx, cy - dp(this, 4), cx, cy, paint);
+                canvas.drawLine(cx, cy, cx + dp(this, 3), cy + dp(this, 2), paint);
+            } else {
+                canvas.drawLine(cx - dp(this, 4), cy, cx + dp(this, 4), cy, paint);
+                canvas.drawLine(cx, cy - dp(this, 4), cx, cy + dp(this, 4), paint);
+            }
+        }
     }
 
     private void follow() {

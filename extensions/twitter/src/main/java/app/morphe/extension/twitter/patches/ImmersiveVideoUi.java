@@ -59,7 +59,9 @@ public final class ImmersiveVideoUi {
     /** Packed width/height for the injected onMeasure; -1 delegates to X unchanged. */
     public static long measure(ViewGroup bar, int widthSpec, int heightSpec) {
         if (!isRail(bar)) return -1;
+        VideoChromePolicy.ensure(bar);
         VideoFollowControl.ensure(bar);
+        VideoActionIcon.install(bar);
         int width = View.resolveSize(dp(bar, 72), widthSpec);
         int count = 0;
         for (int i = 0; i < bar.getChildCount(); i++) {
@@ -199,7 +201,7 @@ public final class ImmersiveVideoUi {
         button.setScaleType(ImageView.ScaleType.FIT_CENTER);
         button.setPadding(dp(bar, 19), dp(bar, 15), dp(bar, 19), dp(bar, 15));
         int icon = bar.getResources().getIdentifier("ic_vector_incoming", "drawable", bar.getContext().getPackageName());
-        if (icon != 0) button.setImageResource(icon);
+        button.setImageDrawable(VideoActionIcon.download());
         button.setColorFilter(Color.WHITE);
         button.setFocusable(true);
         button.setOnClickListener(v -> {
@@ -380,7 +382,7 @@ public final class ImmersiveVideoUi {
         return field.get(target);
     }
 
-    private static String name(View view) {
+    static String name(View view) {
         try { return view.getId() == View.NO_ID ? "" : view.getResources().getResourceEntryName(view.getId()); }
         catch (Exception ignored) { return ""; }
     }
