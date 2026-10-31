@@ -128,6 +128,7 @@ val immersiveVideoUiPatch = bytecodePatch(
                 invoke-virtual {v0, v1}, Landroid/view/MotionEvent;->setAction(I)V
                 invoke-super {p0, v0}, ${view.superclass}->dispatchTouchEvent(Landroid/view/MotionEvent;)Z
                 invoke-virtual {v0}, Landroid/view/MotionEvent;->recycle()V
+                invoke-static {p0}, $EXTENSION->afterNativeCancel(Landroid/view/ViewGroup;)V
                 :consume_tap
                 const/4 v0, 0x1
                 return v0

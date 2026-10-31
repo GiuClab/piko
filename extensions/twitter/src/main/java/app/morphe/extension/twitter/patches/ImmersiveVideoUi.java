@@ -407,6 +407,14 @@ public final class ImmersiveVideoUi {
         if (state.downEvent != null) { state.downEvent.recycle(); state.downEvent = null; }
     }
 
+    /** Native CANCEL may release interception; restore ownership before the next MOVE. */
+    public static void afterNativeCancel(ViewGroup root) {
+        TouchState state = TOUCH.get(root);
+        if (state != null && (state.horizontalLocked || state.secondTap || state.surfaceDown)) {
+            disallowInterception(root, true);
+        }
+    }
+
     private static void disallowInterception(ViewGroup root, boolean disallow) {
         root.requestDisallowInterceptTouchEvent(disallow);
     }
