@@ -4,6 +4,7 @@ import app.crimera.patches.twitter.misc.extension.twitterInitHook
 import app.crimera.patches.twitter.misc.settings.settingsPatch
 import app.crimera.patches.twitter.utils.Constants.COMPATIBILITY_X
 import app.crimera.patches.twitter.utils.Constants.PATCHES_DESCRIPTOR
+import app.crimera.patches.twitter.utils.enableSettings
 import app.crimera.utils.changeFirstString
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
@@ -47,6 +48,7 @@ val immersiveVideoUiPatch = bytecodePatch(
     dependsOn(settingsPatch, immersiveVideoUiResourcePatch)
 
     execute {
+        enableSettings("videoActionSide")
         // Fail while patching if the target's native follow-only API has changed.
         val followRequest = classDefBy("Lcom/twitter/api/legacy/request/user/f;")
         if (followRequest.fields.none { it.name == "M" && it.type == "Lcom/twitter/model/core/entity/k1;" } ||

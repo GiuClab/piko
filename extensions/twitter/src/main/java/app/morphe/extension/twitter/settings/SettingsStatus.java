@@ -433,8 +433,11 @@ public class SettingsStatus {
         return (enableUndoPosts || enableForcePip);
     }
 
+    public static boolean videoActionSide = false;
+    public static void videoActionSide() { videoActionSide = true; }
+
     public static boolean enableCustomisationSection() {
-        return (moreInfoOnProfile || appIconCustomisation || notificationTabCustomisation || searchTabCustomisation || typeaheadCustomisation || exploreTabCustomisation || customPostFontSize || inlineBarCustomisation || navBarCustomisation || sideBarCustomisation || profileTabCustomisation || timelineTabCustomisation || defaultReplySortFilter);
+        return (videoActionSide || moreInfoOnProfile || appIconCustomisation || notificationTabCustomisation || searchTabCustomisation || typeaheadCustomisation || exploreTabCustomisation || customPostFontSize || inlineBarCustomisation || navBarCustomisation || sideBarCustomisation || profileTabCustomisation || timelineTabCustomisation || defaultReplySortFilter);
     }
     public static boolean loggingSection() {
         return (serverResponseLogging || serverResponseLoggingOverwriteFile);

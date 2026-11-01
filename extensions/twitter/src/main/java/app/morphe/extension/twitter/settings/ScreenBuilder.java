@@ -745,6 +745,13 @@ public class ScreenBuilder {
         LegacyTwitterPreferenceCategory category = null;
         if(buildCategory)
             category = preferenceCategory(str("piko_title_customisation"));
+        if (SettingsStatus.videoActionSide) {
+            addPreference(category, helper.listPreference(
+                    str("piko_pref_video_action_side"),
+                    str("piko_pref_video_action_side_desc"),
+                    Settings.VIDEO_ACTION_SIDE
+            ));
+        }
         if (SettingsStatus.profileTabCustomisation) {
            addPreference(category,
                     helper.multiSelectListPref(

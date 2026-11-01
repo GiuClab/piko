@@ -58,7 +58,10 @@ public class ListPref extends ListPreference {
 
         CharSequence[] entries = new CharSequence[]{};
         CharSequence[] entriesValues = new CharSequence[]{};
-        if (key == Settings.VID_PUBLIC_FOLDER.key) {
+        if (Settings.VIDEO_ACTION_SIDE.key.equals(key)) {
+            entries = ResourceUtils.getStringArray("piko_array_video_action_side");
+            entriesValues = new CharSequence[]{"right", "left"};
+        }else if (key == Settings.VID_PUBLIC_FOLDER.key) {
             entries = ResourceUtils.getStringArray("piko_array_public_folder");
             entriesValues = entries;
         }else if (key == Settings.CUSTOM_TIMELINE_TABS.key) {

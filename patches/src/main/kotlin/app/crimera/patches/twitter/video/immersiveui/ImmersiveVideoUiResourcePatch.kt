@@ -59,7 +59,7 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
             actions.setAttribute("android:layout_marginBottom", "16dp")
             actions.removeAttribute("app:layout_constraintStart_toStartOf")
             actions.removeAttribute("app:layout_constraintEnd_toEndOf")
-            actions.setAttribute("app:layout_constraintStart_toStartOf", "parent")
+            actions.setAttribute("app:layout_constraintRight_toRightOf", "parent")
             actions.removeAttribute("app:layout_constraintBottom_toBottomOf")
             actions.setAttribute("app:layout_constraintBottom_toTopOf", "@id/playback_speed_button")
 

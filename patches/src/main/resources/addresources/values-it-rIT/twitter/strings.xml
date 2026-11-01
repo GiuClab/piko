@@ -416,4 +416,6 @@ Si consiglia di leggerlo prima di usare questa funzione. Include alcune note imp
     <string name="piko_login_token_import_failed_already_exist">Impossibile aggiungere l\'account (potrebbe già essere stato aggiunto)</string>
     <string name="piko_ok">OK</string>
     <string name="piko_cancel">Annulla</string>
+    <string name="piko_pref_video_action_side">Posizione dei pulsanti video</string>
+    <string name="piko_pref_video_action_side_desc">Scegli su quale lato mostrare la colonna delle azioni nel player video.</string>
 </resources>

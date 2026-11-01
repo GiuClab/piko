@@ -16,6 +16,8 @@ public class Settings {
 
     public static final BooleanSetting PIKO_DEBUG = new BooleanSetting("piko_debug", false);
 
+    public static final StringSetting VIDEO_ACTION_SIDE = new StringSetting("video_action_side", "right");
+
     public static final StringSetting VID_PUBLIC_FOLDER = new StringSetting("vid_public_folder", "Movies");
     public static final StringSetting VID_SUBFOLDER = new StringSetting("vid_subfolder", "Twitter");
     public static final StringSetting VID_MEDIA_HANDLE = new StringSetting("vid_media_handle", "download_media");

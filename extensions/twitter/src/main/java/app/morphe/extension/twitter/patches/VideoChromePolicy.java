@@ -40,6 +40,7 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         }
         android.graphics.Rect bounds = new android.graphics.Rect();
         if (!isTweetOwner(owner) || !owner.isShown() || !owner.getGlobalVisibleRect(bounds)) return false;
+        positionRail(bar);
         pin(chrome);
         for (View current = bar; current != chrome && current != null;
                 current = current.getParent() instanceof View ? (View) current.getParent() : null) pin(current);
@@ -105,6 +106,18 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
             }
         }
         return null;
+    }
+
+    /** Physical left/right, independent of UI language; translated bounds retain native touch targets. */
+    private static void positionRail(ViewGroup bar) {
+        if (!(bar.getParent() instanceof ViewGroup) || bar.getWidth() == 0) return;
+        ViewGroup parent = (ViewGroup) bar.getParent();
+        boolean left = "left".equals(app.morphe.extension.twitter.Utils.getStringPref(
+                app.morphe.extension.twitter.settings.Settings.VIDEO_ACTION_SIDE));
+        int target = left ? parent.getPaddingLeft()
+                : parent.getWidth() - parent.getPaddingRight() - bar.getWidth();
+        float translation = target - bar.getLeft();
+        if (bar.getTranslationX() != translation) bar.setTranslationX(translation);
     }
 
     private static boolean isTweetOwner(View view) {

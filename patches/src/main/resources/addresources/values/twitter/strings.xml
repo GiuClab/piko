@@ -448,4 +448,6 @@ It's recommended to read this before using this feature. It includes some import
 
     <string name="piko_ok">OK</string>
     <string name="piko_cancel">Cancel</string>
+    <string name="piko_pref_video_action_side">Video action buttons position</string>
+    <string name="piko_pref_video_action_side_desc">Choose which side shows the action column in the video player.</string>
 </resources>

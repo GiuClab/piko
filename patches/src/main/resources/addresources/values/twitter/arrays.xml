@@ -320,4 +320,8 @@
         <item>piko_debug</item>
     </string-array>
 
+    <string-array name="piko_array_video_action_side">
+        <item>Right</item>
+        <item>Left</item>
+    </string-array>
 </resources>
