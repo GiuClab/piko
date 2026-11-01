@@ -109,30 +109,20 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         return null;
     }
 
-    /** Position against the portrait chrome, even when native wrappers are narrower. */
+    /** Move real layout bounds inside a full-width host, with no translated/clipped hit area. */
     static void positionRail(ViewGroup bar) {
-        if (!ImmersiveVideoUi.isRail(bar) || bar.getWidth() == 0) return;
-        View chrome = bar;
-        while (chrome.getParent() instanceof View &&
-                !"chrome_portrait".equals(ImmersiveVideoUi.name(chrome))) {
-            chrome = (View) chrome.getParent();
-        }
-        if (!"chrome_portrait".equals(ImmersiveVideoUi.name(chrome)) || chrome.getWidth() == 0) return;
+        if (!ImmersiveVideoUi.isRail(bar) || !(bar.getParent() instanceof android.widget.FrameLayout)
+                || !"piko_video_action_container".equals(ImmersiveVideoUi.name((View) bar.getParent()))) return;
+        if (!(bar.getLayoutParams() instanceof android.widget.FrameLayout.LayoutParams)) return;
         boolean left = "left".equals(app.morphe.extension.twitter.Utils.getStringPref(
                 app.morphe.extension.twitter.settings.Settings.VIDEO_ACTION_SIDE));
-        int[] chromePosition = new int[2];
-        int[] railPosition = new int[2];
-        chrome.getLocationOnScreen(chromePosition);
-        bar.getLocationOnScreen(railPosition);
-        int target = chromePosition[0] + (left ? chrome.getPaddingLeft()
-                : chrome.getWidth() - chrome.getPaddingRight() - bar.getWidth());
-        float delta = target - railPosition[0];
-        if (Math.abs(delta) > 0.5f) bar.setTranslationX(bar.getTranslationX() + delta);
-        // A native wrapper must not clip the rail when it moves to the opposite edge.
-        for (View parent = bar.getParent() instanceof View ? (View) bar.getParent() : null;
-                parent != null && parent != chrome;
-                parent = parent.getParent() instanceof View ? (View) parent.getParent() : null) {
-            if (parent instanceof ViewGroup) ((ViewGroup) parent).setClipChildren(false);
+        android.widget.FrameLayout.LayoutParams params =
+                (android.widget.FrameLayout.LayoutParams) bar.getLayoutParams();
+        int gravity = android.view.Gravity.TOP | (left ? android.view.Gravity.LEFT : android.view.Gravity.RIGHT);
+        if (bar.getTranslationX() != 0f) bar.setTranslationX(0f);
+        if (params.gravity != gravity) {
+            params.gravity = gravity;
+            bar.setLayoutParams(params);
         }
     }
 

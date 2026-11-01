@@ -52,16 +52,38 @@ internal val immersiveVideoUiResourcePatch = resourcePatch {
         document("res/layout/immersive_media_player_chrome_portrait.xml").use { editor ->
             fun node(id: String) = editor.childNodes.findElementByAttributeValueOrThrow("android:id", "@id/$id") as Element
             val actions = node("tweet_inline_actions")
+            // A full-width host gives the rail real left/right layout bounds and native hit targets.
+            // Moving only translationX can be clipped by X's original narrow containers.
+            val host = actions.ownerDocument.createElement("FrameLayout").apply {
+                setAttribute("android:id", "@+id/piko_video_action_container")
+                setAttribute("android:layout_width", "0dp")
+                setAttribute("android:layout_height", "wrap_content")
+                setAttribute("android:layout_marginBottom", "16dp")
+                setAttribute("app:layout_constraintStart_toStartOf", "parent")
+                setAttribute("app:layout_constraintEnd_toEndOf", "parent")
+                setAttribute("app:layout_constraintBottom_toTopOf", "@id/playback_speed_button")
+            }
+            actions.parentNode.replaceChild(host, actions)
+            host.appendChild(actions)
+            // Preserve any sibling constraints that previously targeted the native rail.
+            val elements = host.ownerDocument.getElementsByTagName("*")
+            for (i in 0 until elements.length) {
+                val element = elements.item(i) as Element
+                for (j in 0 until element.attributes.length) {
+                    val attribute = element.attributes.item(j)
+                    if (attribute.nodeName.startsWith("app:layout_constraint") &&
+                        attribute.nodeValue == "@id/tweet_inline_actions") {
+                        attribute.nodeValue = "@id/piko_video_action_container"
+                    }
+                }
+            }
+            val obsolete = (0 until actions.attributes.length).map { actions.attributes.item(it).nodeName }
+                .filter { it.startsWith("app:layout_constraint") || it.startsWith("app:layout_goneMargin") ||
+                    it.startsWith("android:layout_margin") }
+            obsolete.forEach { actions.removeAttribute(it) }
             actions.setAttribute("android:layout_width", "56dp")
             actions.setAttribute("android:layout_height", "wrap_content")
-            actions.setAttribute("android:layout_marginHorizontal", "0dp")
-            actions.setAttribute("android:layout_marginEnd", "0dp")
-            actions.setAttribute("android:layout_marginBottom", "16dp")
-            actions.removeAttribute("app:layout_constraintStart_toStartOf")
-            actions.removeAttribute("app:layout_constraintEnd_toEndOf")
-            actions.setAttribute("app:layout_constraintRight_toRightOf", "parent")
-            actions.removeAttribute("app:layout_constraintBottom_toBottomOf")
-            actions.setAttribute("app:layout_constraintBottom_toTopOf", "@id/playback_speed_button")
+            actions.setAttribute("android:layout_gravity", "right|top")
 
             // Keep the playback toolbar on the left, below the last social action.
             for ((id, previous) in listOf(
