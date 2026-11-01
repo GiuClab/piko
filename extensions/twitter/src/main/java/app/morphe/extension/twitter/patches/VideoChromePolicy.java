@@ -109,20 +109,31 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         return null;
     }
 
-    /** Move real layout bounds inside a full-width host, with no translated/clipped hit area. */
+    /** Position the XML host's direct child, which can wrap the hooked InlineActionBar. */
     static void positionRail(ViewGroup bar) {
-        if (!ImmersiveVideoUi.isRail(bar) || !(bar.getParent() instanceof android.widget.FrameLayout)
-                || !"piko_video_action_container".equals(ImmersiveVideoUi.name((View) bar.getParent()))) return;
-        if (!(bar.getLayoutParams() instanceof android.widget.FrameLayout.LayoutParams)) return;
+        if (!ImmersiveVideoUi.isRail(bar)) return;
+        View chrome = bar;
+        while (chrome.getParent() instanceof View &&
+                !"chrome_portrait".equals(ImmersiveVideoUi.name(chrome))) {
+            chrome = (View) chrome.getParent();
+        }
+        View found = ImmersiveVideoUi.find(chrome, "piko_video_action_container");
+        if (!(found instanceof android.widget.FrameLayout)) return;
+        android.widget.FrameLayout host = (android.widget.FrameLayout) found;
+        if (host.getChildCount() != 1) return;
+        View railRoot = host.getChildAt(0);
+        if (!(railRoot.getLayoutParams() instanceof android.widget.FrameLayout.LayoutParams)) return;
         boolean left = "left".equals(app.morphe.extension.twitter.Utils.getStringPref(
                 app.morphe.extension.twitter.settings.Settings.VIDEO_ACTION_SIDE));
         android.widget.FrameLayout.LayoutParams params =
-                (android.widget.FrameLayout.LayoutParams) bar.getLayoutParams();
+                (android.widget.FrameLayout.LayoutParams) railRoot.getLayoutParams();
         int gravity = android.view.Gravity.TOP | (left ? android.view.Gravity.LEFT : android.view.Gravity.RIGHT);
         if (bar.getTranslationX() != 0f) bar.setTranslationX(0f);
+        if (railRoot.getTranslationX() != 0f) railRoot.setTranslationX(0f);
         if (params.gravity != gravity) {
             params.gravity = gravity;
-            bar.setLayoutParams(params);
+            railRoot.setLayoutParams(params);
+            host.requestLayout();
         }
     }
 
