@@ -2,13 +2,14 @@
 
 **An unofficial experimental Piko fork for the vertical video player in X on Android.**
 
-Left-side actions, double-tap likes and horizontal video seeking, with a simplified player layout.
+Customizable video actions, double-tap likes and horizontal video seeking, with a simplified player layout.
 
-[**Download the public beta**](https://github.com/gcapurro89/piko/releases/tag/video-ui-beta.1) · [Installation](#installation) · [Known issues](#status-and-known-issues) · [Source code](https://github.com/gcapurro89/piko/tree/experimental/video-ui)
+[**Download latest experimental build (.14)**](https://github.com/GiuClab/piko/actions/runs/41285286715/artifacts/13075405878) · [Published beta (.10)](https://github.com/GiuClab/piko/releases/tag/video-ui-beta.1) · [Installation](#installation) · [Known issues](#status-and-known-issues) · [Source code](https://github.com/GiuClab/piko/tree/experimental/video-ui)
 
 ## Features
 
-- Left-side video actions: author avatar, follow status, likes, comments, reposts, bookmarks, sharing, downloads and post menu.
+- Video actions: author avatar, follow status, likes, comments, reposts, bookmarks, sharing, downloads and post menu.
+- Experimental left/right column selection in **Piko > Customisation > Video action buttons position** (Right by default; latest correction still needs device confirmation).
 - Tap the avatar to open the profile, or use the follow badge without leaving the player.
 - Single-tap play/pause; double-tap to like without removing an existing like.
 - Horizontal dragging to seek; vertical swiping to switch videos.
@@ -19,11 +20,12 @@ Changes apply to the portrait immersive player. This is a patch bundle, not a st
 
 ## Compatibility
 
-| Component | Public beta target |
+| Component | Version / status |
 | --- | --- |
 | X for Android | `12.19.1-release.0` (`312191000`) |
 | Package | `com.twitter.android` |
-| Bundle | `3.11.0-video-ui.10` |
+| Latest experimental bundle | `3.11.0-video-ui.14` |
+| Published beta 1 bundle | `3.11.0-video-ui.10` |
 | Upstream base | Piko `3.11.0-dev.3` |
 | Custom patch | `Experimental vertical video controls` |
 
@@ -31,7 +33,9 @@ Newer X versions are not verified. Both upstream patches and this fork's video c
 
 ## Installation
 
-1. Download `patches-3.11.0-video-ui.10.mpp` from the [beta release](https://github.com/gcapurro89/piko/releases/tag/video-ui-beta.1).
+The latest experimental bundle is **3.11.0-video-ui.14**. The existing **beta 1 release still contains version 10**; these are separate downloads. The experimental Actions artifact requires GitHub sign-in and is retained until November 15, 2026. If it expires, rebuild from the development branch.
+
+1. Download the [latest experimental ZIP](https://github.com/GiuClab/piko/actions/runs/41285286715/artifacts/13075405878) and extract `patches-3.11.0-video-ui.14.mpp`. To use the earlier published build, download version 10 from the [beta 1 release](https://github.com/GiuClab/piko/releases/tag/video-ui-beta.1).
 2. In Morphe Manager, import the file as a local patch source. Existing users can update the local source previously named **Piko mio**.
 3. Use this source alone for X. It already contains the base Piko patches: do not combine it with another Piko source.
 4. Select the original APKM for X `12.19.1-release.0`. Enable **Experimental vertical video controls** and your other preferred compatible patches.
@@ -43,11 +47,12 @@ The `.mpp` cannot be installed directly as an Android app. If a signature confli
 
 ## Status and known issues
 
-**Public testing beta.** The maintainer reports the latest player behavior working on the development phone. Automated gesture/state tests and compilation passed. Wider device and account compatibility is not established.
+**Experimental development builds.** Version 10's player behavior was reported working on the development phone. Version 14 passed compilation and the existing automated tests, but its left/right column selection correction still needs device confirmation. Wider device and account compatibility is not established.
 
 - Earlier builds sometimes displayed `VideoFollowControl: Video follow state unavailable…`. Its cause has not been conclusively diagnosed. Please report it if it returns.
 - Follow state may be unavailable when author/account identity cannot be verified. A follow is confirmed only after X responds; network latency still applies.
-- Version 9 blocked vertical switching. Version 10 contains the correction and is distributed here.
+- Version 9 blocked vertical switching; version 10 addressed it.
+- Versions 11–13 had reported problems applying the left-side selection. Version 14 changes which layout container receives the setting; this correction is not yet confirmed on the phone.
 - Android system back gestures are separate from app-level swipe-to-dismiss handling.
 - Newer X versions are not supported by this release.
 
@@ -59,15 +64,15 @@ Never upload login tokens, passwords, signing keys or unredacted account credent
 
 ## Development
 
-The custom source lives on [`experimental/video-ui`](https://github.com/gcapurro89/piko/tree/experimental/video-ui). The default branch provides this landing page and support templates.
+The custom source lives on [`experimental/video-ui`](https://github.com/GiuClab/piko/tree/experimental/video-ui). The default branch provides this landing page and support templates.
 
-- [Implementation and verification notes](https://github.com/gcapurro89/piko/blob/experimental/video-ui/docs/video-ui-prototype.md)
-- [Build workflow](https://github.com/gcapurro89/piko/blob/experimental/video-ui/.github/workflows/build-video-ui.yml)
-- [Builds](https://github.com/gcapurro89/piko/actions/workflows/build-video-ui.yml)
+- [Implementation and verification notes](https://github.com/GiuClab/piko/blob/experimental/video-ui/docs/video-ui-prototype.md)
+- [Build workflow](https://github.com/GiuClab/piko/blob/experimental/video-ui/.github/workflows/build-video-ui.yml)
+- [Builds](https://github.com/GiuClab/piko/actions/workflows/build-video-ui.yml)
 
 ## Credits and license
 
-Based on [Piko by crimera and contributors](https://github.com/crimera/piko). Independently maintained by [gcapurro89](https://github.com/gcapurro89).
+Based on [Piko by crimera and contributors](https://github.com/crimera/piko). Independently maintained by [GiuClab](https://github.com/GiuClab).
 
 Not affiliated with or endorsed by X, TikTok or the upstream Piko project.
 
