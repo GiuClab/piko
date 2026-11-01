@@ -84,6 +84,7 @@ public final class ImmersiveVideoUi {
 
     public static boolean layout(ViewGroup bar) {
         if (!isRail(bar)) return false;
+        VideoChromePolicy.positionRail(bar);
         int top = bar.getPaddingTop();
         List<View> items = new ArrayList<>();
         for (int i = 0; i < bar.getChildCount(); i++) {

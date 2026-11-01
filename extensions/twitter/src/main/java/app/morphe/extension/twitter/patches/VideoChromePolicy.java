@@ -31,6 +31,8 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         while (chrome.getParent() instanceof View && !"chrome_portrait".equals(ImmersiveVideoUi.name(chrome))) {
             chrome = (View) chrome.getParent();
         }
+        // Position is independent of the TweetView visibility guard used for auto-hide.
+        positionRail(bar);
         // X fades/hides the chrome after inactivity. Restore only this visible portrait
         // player's groups, leaving per-action availability and other screens untouched.
         View owner = chrome;
@@ -40,7 +42,6 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         }
         android.graphics.Rect bounds = new android.graphics.Rect();
         if (!isTweetOwner(owner) || !owner.isShown() || !owner.getGlobalVisibleRect(bounds)) return false;
-        positionRail(bar);
         pin(chrome);
         for (View current = bar; current != chrome && current != null;
                 current = current.getParent() instanceof View ? (View) current.getParent() : null) pin(current);
@@ -108,16 +109,31 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         return null;
     }
 
-    /** Physical left/right, independent of UI language; translated bounds retain native touch targets. */
-    private static void positionRail(ViewGroup bar) {
-        if (!(bar.getParent() instanceof ViewGroup) || bar.getWidth() == 0) return;
-        ViewGroup parent = (ViewGroup) bar.getParent();
+    /** Position against the portrait chrome, even when native wrappers are narrower. */
+    static void positionRail(ViewGroup bar) {
+        if (!ImmersiveVideoUi.isRail(bar) || bar.getWidth() == 0) return;
+        View chrome = bar;
+        while (chrome.getParent() instanceof View &&
+                !"chrome_portrait".equals(ImmersiveVideoUi.name(chrome))) {
+            chrome = (View) chrome.getParent();
+        }
+        if (!"chrome_portrait".equals(ImmersiveVideoUi.name(chrome)) || chrome.getWidth() == 0) return;
         boolean left = "left".equals(app.morphe.extension.twitter.Utils.getStringPref(
                 app.morphe.extension.twitter.settings.Settings.VIDEO_ACTION_SIDE));
-        int target = left ? parent.getPaddingLeft()
-                : parent.getWidth() - parent.getPaddingRight() - bar.getWidth();
-        float translation = target - bar.getLeft();
-        if (bar.getTranslationX() != translation) bar.setTranslationX(translation);
+        int[] chromePosition = new int[2];
+        int[] railPosition = new int[2];
+        chrome.getLocationOnScreen(chromePosition);
+        bar.getLocationOnScreen(railPosition);
+        int target = chromePosition[0] + (left ? chrome.getPaddingLeft()
+                : chrome.getWidth() - chrome.getPaddingRight() - bar.getWidth());
+        float delta = target - railPosition[0];
+        if (Math.abs(delta) > 0.5f) bar.setTranslationX(bar.getTranslationX() + delta);
+        // A native wrapper must not clip the rail when it moves to the opposite edge.
+        for (View parent = bar.getParent() instanceof View ? (View) bar.getParent() : null;
+                parent != null && parent != chrome;
+                parent = parent.getParent() instanceof View ? (View) parent.getParent() : null) {
+            if (parent instanceof ViewGroup) ((ViewGroup) parent).setClipChildren(false);
+        }
     }
 
     private static boolean isTweetOwner(View view) {
