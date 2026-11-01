@@ -1,9 +1,25 @@
 # Experimental vertical video controls
 
-Current bundle: **3.11.0-video-ui.10**, based on upstream Piko `v3.11.0-dev.3`.
+Current bundle: **3.11.0-video-ui.11**, based on upstream Piko `v3.11.0-dev.3`.
 Target: X `12.19.1-release.0` (`312191000`), portrait immersive video player.
 
-[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41244490449)
+[Build and downloadable patch bundle](https://github.com/gcapurro89/piko/actions/runs/41282375797)
+
+## Action column position (version 11)
+
+Only the column position is changed in this iteration. The default is now physical
+**Right**, independent of UI language. In X, open **Piko > Customisation > Video
+action buttons position** and select **Right** or **Left**. In Italian, the existing
+section is named **Customizzazione**, with **Posizione dei pulsanti video**.
+
+The choice uses Piko's persisted settings and applies when the portrait player
+is drawn again, including reopening it. It moves the complete action rail and its
+native touch bounds together. Playback controls and gesture handling are unchanged.
+The option is exposed only when Experimental vertical video controls is patched.
+
+Compilation and existing automated tests passed; selecting both sides, persistence
+after restart and touch targeting still require phone verification for version 11.
+The published beta 1 remains version 10 until the new option is device-verified.
 
 ## Device feedback
 
@@ -94,7 +110,7 @@ was sent by the development or APK verification tools.
   verification remains required; successful compilation does not verify routing.
 - Gesture, horizontal-seek math and relationship-state tests passed in GitHub Actions for this version.
 - Java extensions and Kotlin patches compiled successfully; the `.mpp` artifact was
-  generated. The final tested source is commit `743b4b69a3338c999a2c41068f078bb61d33b9b7`.
+  generated. The final tested source is commit `620b0f2091986084edc5058856a0e1267e9416e5`.
 - APK application/rebuilding was not repeated for this version because the original
   APKM is no longer present in the current workspace. The preceding version's
   successful rebuild does not establish this version's resource compatibility.
@@ -104,8 +120,8 @@ was sent by the development or APK verification tools.
 
 ## Aggiornamento sul telefono
 
-1. Scarica `piko-patch-bundle-13` dalla compilazione collegata sopra ed estrai
-   `patches-3.11.0-video-ui.10.mpp`.
+1. Scarica `piko-patch-bundle-15` dalla compilazione collegata sopra ed estrai
+   `patches-3.11.0-video-ui.11.mpp`.
 2. In Morphe apri la scheda della fonte locale **Piko mio**, premi **Aggiorna** e
    seleziona il nuovo file. Mantieni disabilitata la fonte Piko originale per X.
 3. Lascia selezionata **Experimental vertical video controls**, insieme alle patch
