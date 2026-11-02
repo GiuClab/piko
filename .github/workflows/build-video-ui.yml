@@ -2,7 +2,7 @@ name: Build video UI
 
 on:
   push:
-    branches: [experimental/video-ui]
+    branches: [experimental/video-ui, feature/continuous-media-comments]
   workflow_dispatch:
     inputs:
       source_ref:
