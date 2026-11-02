@@ -43,6 +43,10 @@ public final class NativeMedia {
         return Class.forName("com.twitter.util.user.UserIdentifier$Companion").getMethod("c").invoke(null);
     }
     static long id(Object object) throws ReflectiveOperationException { return ((Number) call(object, "getId")).longValue(); }
+    private static long tweetId(Object tweet) throws ReflectiveOperationException {
+        // Match Gallery's own core.a() identifier, including repost wrappers.
+        return ((Number) call(field(tweet, "a"), "a")).longValue();
+    }
 
     public static boolean closeComments(Activity activity) { return NativeComments.dismiss(activity); }
 
@@ -106,7 +110,7 @@ public final class NativeMedia {
     }
     private static void collect(Object row, Map<Long, Object> tweets, Set<Object> seen, int depth) throws ReflectiveOperationException {
         if (row == null || depth > 5 || !seen.add(row)) return;
-        if (row.getClass().getName().equals("com.twitter.model.core.e")) { tweets.putIfAbsent(id(row), row); return; }
+        if (row.getClass().getName().equals("com.twitter.model.core.e")) { tweets.putIfAbsent(tweetId(row), row); return; }
         if (row instanceof Iterable<?>) { for (Object child : (Iterable<?>) row) collect(child, tweets, seen, depth + 1); return; }
         if (!row.getClass().getName().startsWith("com.twitter.model.timeline.")) return;
         for (Class<?> c = row.getClass(); c != null && c.getName().startsWith("com.twitter.model.timeline."); c = c.getSuperclass()) {
@@ -128,7 +132,7 @@ public final class NativeMedia {
             if (!(entities instanceof Iterable<?>)) continue;
             for (Object media : (Iterable<?>) entities) {
                 if (!mediaClass.isInstance(media)) continue;
-                String key = id(tweet) + ":" + field(media, "j");
+                String key = tweetId(tweet) + ":" + field(media, "j");
                 if (!keys.add(key)) continue;
                 String kind = ((Enum<?>) field(media, "p")).name();
                 boolean video = "VIDEO".equals(kind) || "ANIMATED_GIF".equals(kind);
@@ -164,7 +168,7 @@ public final class NativeMedia {
                 if (!Boolean.TRUE.equals(call(fragment, "isVisible"))) continue;
                 List<Object> posts = tweets(source);
                 boolean contains = false;
-                for (Object post : posts) if (id(post) == selected) { contains = true; break; }
+                for (Object post : posts) if (id(post) == selected || tweetId(post) == selected) { contains = true; break; }
                 if (!contains) continue;
                 List<Object> expanded = items(posts);
                 if (expanded.size() <= original.size()) return original;
@@ -174,7 +178,7 @@ public final class NativeMedia {
                 int index = -1;
                 for (int j = 0; j < expanded.size(); j++) {
                     Object item = expanded.get(j);
-                    if (id(field(item, "a")) == selected && ((Number) field(field(item, "b"), "j")).longValue() == mediaId) { index = j; break; }
+                    if ((id(field(item, "a")) == selected || tweetId(field(item, "a")) == selected) && ((Number) field(field(item, "b"), "j")).longValue() == mediaId) { index = j; break; }
                 }
                 if (index < 0) return original;
                 set(gallery, "T", index);
@@ -233,6 +237,6 @@ public final class NativeMedia {
                 } catch (ReflectiveOperationException | RuntimeException e) { loading = false; retryAfter = android.os.SystemClock.uptimeMillis() + 5000; }
             }, 300);
         }
-        String key(Object item) throws ReflectiveOperationException { return id(field(item, "a")) + ":" + field(field(item, "b"), "j"); }
+        String key(Object item) throws ReflectiveOperationException { return tweetId(field(item, "a")) + ":" + field(field(item, "b"), "j"); }
     }
 }
