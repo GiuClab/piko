@@ -1,7 +1,7 @@
 # v14-based media rebuild
 
 Branch: `fix/v14-media-rebuild`.
-Current diagnostic version: `3.11.0-video-ui.16-dev.2`.
+Current development version: `3.11.0-video-ui.16-dev.3`.
 Base: the exact v14 compiled source, `3356c987418212b811091c02aa53a55f5ba9c9b4`.
 
 ## Why rebuild
@@ -50,3 +50,13 @@ The maintainer reached the player and reported the handled message `NativeCommen
 Source: `94e9a1381c2643d9e584407729eb22c42ce3988b`.
 Build and existing tests passed: https://github.com/GiuClab/piko/actions/runs/41532424524
 Android runtime and the actual failure cause still require the user's diagnostic.
+
+## Conversation argument fix (v16-dev.3)
+
+A device diagnostic reached `build-native-args` and reported the native builder configuration invalid. The builder contained the account owner and timeline tag but lacked `timeline_arg_tweet_id`. Code had attempted build() before putting the required conversation fields into a separate result Bundle.
+
+The fix inserts `timeline_arg_contextual_tweet`, `timeline_arg_tweet_id` and `arg_timeline_type` into the builder's Bundle BEFORE invoking its native build method. The timeline tag remains a separate field. No user/account/post identifiers from the diagnostic are committed here. The copyable diagnostic is retained for any subsequent integration error.
+
+Source: `8d32d5f742a7c8d922801e9ef21006742935be2a`.
+Build: https://github.com/GiuClab/piko/actions/runs/41534407905
+Compilation and existing tests passed. The validation-order bug is corrected in code; full comments-panel behavior still requires device confirmation.
