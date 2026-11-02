@@ -35,3 +35,10 @@ Comments use X's native conversation fragment in a panel on the player activity.
 OptionalMediaGuardTest covers failed class initialization, subsequent NoClassDefFoundError, VerifyError, runtime failures, a failing error reporter and continued native fallback. MediaSequenceTest covers item identity/order, pagination duplicates and non-mutation of caller-owned lists. Existing gesture and relationship tests remain in the build.
 
 Compilation and device verification must be reported separately. The original APKM is no longer present in the current scratch workspace, so a new APK application/rebuild cannot be claimed for this iteration. Earlier v15 rebuild results do not validate this version. No crash-free guarantee is made.
+
+## Build result
+
+Source: `b9f0fc5709bfc0b50ae07f12ffc851c89300418b`.
+GitHub Actions: https://github.com/GiuClab/piko/actions/runs/41468985193
+Compilation and the gesture, relationship, media-sequence and optional-initialization guard tests passed.
+The build is a development candidate; Android startup and the optional features have not been verified on a device.
