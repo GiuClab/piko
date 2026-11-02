@@ -86,14 +86,16 @@ public final class NativeMedia {
 
     /** Called after X's source-list controller constructor, not from view binding history. */
     public static void onTimeline(Object controller) {
-        install();
         try {
+            install();
             String type = field(controller, "b").getClass().getName();
             if (!HOME.equals(type) && !PROFILE.equals(type)) return;
             SOURCES.removeIf(ref -> ref.get() == null);
             for (WeakReference<Object> ref : SOURCES) if (ref.get() == controller) return;
             SOURCES.add(new WeakReference<>(controller));
-        } catch (ReflectiveOperationException ignored) { }
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            android.util.Log.w("PikoMedia", "Optional media source initialization skipped", e);
+        }
     }
 
     private static List<Object> tweets(Object source) throws ReflectiveOperationException {

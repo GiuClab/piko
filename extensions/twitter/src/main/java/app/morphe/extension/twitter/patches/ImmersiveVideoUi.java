@@ -45,7 +45,7 @@ public final class ImmersiveVideoUi {
     private static String toggleFieldName() { return "pikoVideoToggleField"; }
     private static String tweetFieldName() { return "pikoVideoTweetField"; }
 
-    public static void enable() { enabled = true; NativeMedia.install(); }
+    public static void enable() { enabled = true; }
 
     public static boolean isRail(View view) {
         if (!enabled || view.getResources().getConfiguration().orientation != Configuration.ORIENTATION_PORTRAIT) return false;
