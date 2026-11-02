@@ -418,4 +418,8 @@ Si consiglia di leggerlo prima di usare questa funzione. Include alcune note imp
     <string name="piko_cancel">Annulla</string>
     <string name="piko_pref_video_action_side">Posizione dei pulsanti video</string>
     <string name="piko_pref_video_action_side_desc">Scegli su quale lato mostrare la colonna delle azioni nel player video.</string>
+    <string name="piko_pref_continuous_gallery">Galleria continua foto/video (sperimentale)</string>
+    <string name="piko_pref_continuous_gallery_desc">Scorri i media della timeline o della scheda Media di un profilo. Riavvia X dopo la modifica. Disattivata per impostazione predefinita.</string>
+    <string name="piko_pref_inline_comments">Commenti nel player video (sperimentale)</string>
+    <string name="piko_pref_inline_comments_desc">Mostra la conversazione nativa in un pannello sopra il player. Attivala separatamente per la prova. Disattivata per impostazione predefinita.</string>
 </resources>

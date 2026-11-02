@@ -35,7 +35,6 @@ final class VideoFollowControl extends LinearLayout {
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final Map<String, Pending> IN_FLIGHT = new ConcurrentHashMap<>();
     private final WeakReference<ViewGroup> barRef;
-    private final TextView label;
     private final Glyph glyph = new Glyph();
     private final AvatarPhoto avatar;
     private final Badge badge;
@@ -74,16 +73,6 @@ final class VideoFollowControl extends LinearLayout {
         badge.setOnClickListener(v -> follow());
         profile.addView(badge, new FrameLayout.LayoutParams(dp(this, 18), dp(this, 18), Gravity.BOTTOM | Gravity.END));
         addView(profile, new LinearLayout.LayoutParams(dp(this, 44), dp(this, 44)));
-        label = new TextView(getContext());
-        label.setTextColor(Color.WHITE);
-        label.setTextSize(11);
-        label.setIncludeFontPadding(false);
-        label.setGravity(Gravity.CENTER);
-        label.setShadowLayer(dp(this, 2), 0, dp(this, 1), Color.BLACK);
-        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        textParams.topMargin = dp(this, 2);
-        addView(label, textParams);
         setOnClickListener(v -> follow());
         update();
     }
@@ -123,7 +112,6 @@ final class VideoFollowControl extends LinearLayout {
                 Logger.printException(() -> "Video follow state unavailable", e);
             }
         }
-        if (!text.contentEquals(label.getText())) label.setText(text);
         setEnabled(canFollow);
         // Even a disabled status tile must not turn touches into video-surface gestures.
         setClickable(true);

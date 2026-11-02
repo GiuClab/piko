@@ -746,6 +746,12 @@ public class ScreenBuilder {
         if(buildCategory)
             category = preferenceCategory(str("piko_title_customisation"));
         if (SettingsStatus.videoActionSide) {
+            addPreference(category, helper.switchPreference(
+                    str("piko_pref_continuous_gallery"), str("piko_pref_continuous_gallery_desc"),
+                    Settings.MEDIA_CONTINUOUS_GALLERY));
+            addPreference(category, helper.switchPreference(
+                    str("piko_pref_inline_comments"), str("piko_pref_inline_comments_desc"),
+                    Settings.VIDEO_INLINE_COMMENTS));
             addPreference(category, helper.listPreference(
                     str("piko_pref_video_action_side"),
                     str("piko_pref_video_action_side_desc"),

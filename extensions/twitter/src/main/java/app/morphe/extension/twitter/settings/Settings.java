@@ -16,6 +16,9 @@ public class Settings {
 
     public static final BooleanSetting PIKO_DEBUG = new BooleanSetting("piko_debug", false);
 
+    public static final BooleanSetting MEDIA_CONTINUOUS_GALLERY = new BooleanSetting("media_continuous_gallery", false);
+    public static final BooleanSetting VIDEO_INLINE_COMMENTS = new BooleanSetting("video_inline_comments", false);
+
     public static final StringSetting VIDEO_ACTION_SIDE = new StringSetting("video_action_side", "right");
 
     public static final StringSetting VID_PUBLIC_FOLDER = new StringSetting("vid_public_folder", "Movies");
