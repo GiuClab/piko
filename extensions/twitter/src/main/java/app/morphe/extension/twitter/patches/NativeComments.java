@@ -59,20 +59,60 @@ final class NativeComments {
         Activity activity = activity(bar.getContext());
         if (activity == null || activity.isFinishing()) return;
         dismiss(activity);
+        Panel panel = null;
+        String stage = "resolve-current-post";
         try {
             Object tweet = ImmersiveVideoUi.currentTweet(bar);
             if (!(tweet instanceof Parcelable) || NativeMedia.id(tweet) <= 0) return;
-            Panel panel = new Panel(activity);
+            panel = new Panel(activity);
             PANELS.put(activity, panel);
             panel.show(tweet);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            String failedStage = panel == null ? stage : panel.stage;
             dismiss(activity);
-            Logger.printException(() -> "In-player comments unavailable", e);
+            showFailure(activity, failedStage, e);
         }
     }
+    private static void showFailure(Activity activity, String stage, Throwable failure) {
+        Throwable root = failure;
+        java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        while (seen.add(root)) {
+            Throwable next = root instanceof java.lang.reflect.InvocationTargetException
+                    ? ((java.lang.reflect.InvocationTargetException) root).getTargetException() : root.getCause();
+            if (next == null || seen.contains(next)) break;
+            root = next;
+        }
+        String version;
+        try { version = String.valueOf(app.morphe.extension.shared.Utils.getPatchesReleaseVersion()); }
+        catch (RuntimeException | LinkageError ignored) { version = "unknown"; }
+        final String details = "Piko in-player comments diagnostic\n"
+                + "Bundle: " + version + "\nStage: " + stage
+                + "\nAndroid: " + android.os.Build.VERSION.RELEASE
+                + " / API " + android.os.Build.VERSION.SDK_INT
+                + "\nCause: " + root.getClass().getName() + ": " + String.valueOf(root.getMessage())
+                + "\n\n" + android.util.Log.getStackTraceString(failure);
+        android.util.Log.e("PikoMedia", details);
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        try {
+            new android.app.AlertDialog.Builder(activity)
+                    .setTitle(isItalian() ? "Impossibile aprire i commenti" : "Unable to open comments")
+                    .setMessage(details)
+                    .setPositiveButton(isItalian() ? "Copia dettagli" : "Copy details", (dialog, which) -> {
+                        android.content.ClipboardManager clipboard = (android.content.ClipboardManager)
+                                activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (clipboard != null) clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Piko comments diagnostic", details));
+                    })
+                    .setNegativeButton(isItalian() ? "Chiudi" : "Close", null)
+                    .show();
+        } catch (RuntimeException | LinkageError error) {
+            android.util.Log.e("PikoMedia", "Unable to display comments diagnostic", error);
+        }
+    }
+
     private static final class Panel {
         final WeakReference<Activity> activity;
         FrameLayout overlay;
+        String stage = "create-overlay";
         Object manager, fragment, backDispatcher, backCallback;
         Panel(Activity activity) { this.activity = new WeakReference<>(activity); }
         void show(Object tweet) throws ReflectiveOperationException {
@@ -115,21 +155,32 @@ final class NativeComments {
             content.addView(overlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             // Match X's native TweetDetail timeline argument builder, including its account scope.
+            stage = "create-native-args-builder";
             Object builder = Class.forName("com.twitter.tweetdetail.g0$a").getConstructor(Bundle.class).newInstance((Object) null);
+            stage = "set-native-account";
             NativeMedia.call(builder, "s", new Class<?>[]{Class.forName("com.twitter.util.user.UserIdentifier")}, NativeMedia.actor());
+            stage = "set-native-post-id";
             NativeMedia.call(builder, "t", new Class<?>[]{String.class}, String.valueOf(NativeMedia.id(tweet)));
+            stage = "build-native-args";
             Bundle args = new Bundle((Bundle) NativeMedia.field(NativeMedia.call(builder, "j"), "a"));
             args.putParcelable("timeline_arg_contextual_tweet", (Parcelable) tweet);
             args.putLong("timeline_arg_tweet_id", NativeMedia.id(tweet));
             args.putInt("arg_timeline_type", 14);
+            stage = "create-conversation-fragment";
             fragment = Class.forName("com.twitter.tweetdetail.TweetDetailTimelineFragment").getConstructor().newInstance();
+            stage = "set-fragment-arguments";
             NativeMedia.call(fragment, "setArguments", new Class<?>[]{Bundle.class}, args);
+            stage = "get-fragment-manager";
             manager = NativeMedia.call(a, "getSupportFragmentManager");
+            stage = "create-fragment-transaction";
             Object transaction = transaction();
+            stage = "attach-conversation-fragment";
             NativeMedia.call(transaction, "e", new Class<?>[]{int.class, Class.forName("androidx.fragment.app.Fragment"), String.class, int.class},
                     fragmentHost.getId(), fragment, "piko_video_comments", 1);
             // Synchronous commit lets an incompatible native fragment fail without an uncaught async crash.
+            stage = "commit-conversation-fragment";
             NativeMedia.call(transaction, "l");
+            stage = "conversation-attached";
             overlay.requestFocus();
             registerBack(a);
         }
