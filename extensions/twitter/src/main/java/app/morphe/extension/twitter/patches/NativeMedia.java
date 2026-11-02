@@ -160,25 +160,38 @@ public final class NativeMedia {
             long owner = id(actor());
             long selected = ((Number) call(field(gallery, "G"), "p")).longValue();
             Activity sourceActivity = previous.get();
-            if (sourceActivity == null || selected <= 0) return original;
+            if (sourceActivity == null) return original;
+            Object selectedMedia = field(gallery, "W");
+            if (selectedMedia == null) {
+                int nativeIndex = ((Number) call(field(gallery, "G"), "i")).intValue();
+                nativeIndex = Math.max(0, Math.min(original.size() - 1, nativeIndex));
+                selectedMedia = field(original.get(nativeIndex), "b");
+            }
+            if (selectedMedia == null) return original;
+            long mediaId = ((Number) field(selectedMedia, "j")).longValue();
             for (int i = previousSources.size() - 1; i >= 0; i--) {
                 Object source = previousSources.get(i).get();
                 if (source == null || field(source, "a") != sourceActivity || id(field(source, "c")) != owner) continue;
                 Object fragment = field(source, "b");
                 if (!Boolean.TRUE.equals(call(fragment, "isVisible"))) continue;
                 List<Object> posts = tweets(source);
-                boolean contains = false;
-                for (Object post : posts) if (id(post) == selected || tweetId(post) == selected) { contains = true; break; }
-                if (!contains) continue;
+                long matchedPost = -1;
+                for (Object post : posts) {
+                    if (selected > 0 && id(post) != selected && tweetId(post) != selected) continue;
+                    Object entities = field(call(post, "c"), "a");
+                    if (!(entities instanceof Iterable<?>)) continue;
+                    for (Object media : (Iterable<?>) entities) {
+                        if (((Number) field(media, "j")).longValue() == mediaId) { matchedPost = tweetId(post); break; }
+                    }
+                    if (matchedPost > 0) break;
+                }
+                if (matchedPost <= 0) continue;
                 List<Object> expanded = items(posts);
-                if (expanded.size() <= original.size()) return original;
-                Object selectedMedia = field(gallery, "W");
-                if (selectedMedia == null) selectedMedia = field(original.get(0), "b");
-                long mediaId = ((Number) field(selectedMedia, "j")).longValue();
+                if (expanded.isEmpty() || expanded.size() < original.size()) return original;
                 int index = -1;
                 for (int j = 0; j < expanded.size(); j++) {
                     Object item = expanded.get(j);
-                    if ((id(field(item, "a")) == selected || tweetId(field(item, "a")) == selected) && ((Number) field(field(item, "b"), "j")).longValue() == mediaId) { index = j; break; }
+                    if (tweetId(field(item, "a")) == matchedPost && ((Number) field(field(item, "b"), "j")).longValue() == mediaId) { index = j; break; }
                 }
                 if (index < 0) return original;
                 set(gallery, "T", index);
