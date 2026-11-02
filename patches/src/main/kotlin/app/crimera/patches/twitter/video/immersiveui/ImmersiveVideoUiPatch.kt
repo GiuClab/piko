@@ -45,7 +45,7 @@ val immersiveVideoUiPatch = bytecodePatch(
     default = false,
 ) {
     compatibleWith(COMPATIBILITY_X)
-    dependsOn(settingsPatch, immersiveVideoUiResourcePatch)
+    dependsOn(settingsPatch, immersiveVideoUiResourcePatch, continuousMediaPatch)
 
     execute {
         enableSettings("videoActionSide")

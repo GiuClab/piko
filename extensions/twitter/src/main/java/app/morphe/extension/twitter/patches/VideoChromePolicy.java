@@ -33,6 +33,7 @@ final class VideoChromePolicy implements ViewTreeObserver.OnPreDrawListener, Vie
         }
         // Position is independent of the TweetView visibility guard used for auto-hide.
         positionRail(bar);
+        NativeComments.install(bar);
         // X fades/hides the chrome after inactivity. Restore only this visible portrait
         // player's groups, leaving per-action availability and other screens untouched.
         View owner = chrome;
