@@ -16,6 +16,7 @@ public final class NativeMedia {
     private static final List<WeakReference<Object>> SOURCES = new ArrayList<>();
     private static final Map<Object, Session> GALLERIES = new WeakHashMap<>();
     private static WeakReference<Activity> previous = new WeakReference<>(null);
+    private static List<WeakReference<Object>> previousSources = Collections.emptyList();
     private static boolean installed;
     private static final String HOME = "com.twitter.app.home.HomeTimelineFragment";
     private static final String PROFILE = "com.twitter.app.profiles.timeline.ProfileMediaTimelineFragment";
@@ -52,7 +53,22 @@ public final class NativeMedia {
         installed = true;
         ((Application) context.getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             public void onActivityPaused(Activity a) {
-                if (!a.getClass().getName().contains(".gallery.") && !a.getClass().getName().contains("immersivemediaplayer")) previous = new WeakReference<>(a);
+                if (!a.getClass().getName().contains(".gallery.") && !a.getClass().getName().contains("immersivemediaplayer")) {
+                    previous = new WeakReference<>(a);
+                    List<WeakReference<Object>> visible = new ArrayList<>();
+                    for (WeakReference<Object> ref : SOURCES) {
+                        Object source = ref.get();
+                        try {
+                            if (source == null || field(source, "a") != a) continue;
+                            Object fragment = field(source, "b");
+                            android.view.View view = (android.view.View) call(fragment, "getView");
+                            android.graphics.Rect rect = new android.graphics.Rect();
+                            if (Boolean.TRUE.equals(call(fragment, "isVisible")) && view != null &&
+                                    view.getGlobalVisibleRect(rect) && rect.width() > view.getWidth() / 2) visible.add(ref);
+                        } catch (ReflectiveOperationException | RuntimeException ignored) { }
+                    }
+                    previousSources = visible;
+                }
                 NativeComments.dismiss(a);
             }
             public void onActivityDestroyed(Activity a) { NativeComments.dismiss(a); }
@@ -141,8 +157,8 @@ public final class NativeMedia {
             long selected = ((Number) call(field(gallery, "G"), "p")).longValue();
             Activity sourceActivity = previous.get();
             if (sourceActivity == null || selected <= 0) return original;
-            for (int i = SOURCES.size() - 1; i >= 0; i--) {
-                Object source = SOURCES.get(i).get();
+            for (int i = previousSources.size() - 1; i >= 0; i--) {
+                Object source = previousSources.get(i).get();
                 if (source == null || field(source, "a") != sourceActivity || id(field(source, "c")) != owner) continue;
                 Object fragment = field(source, "b");
                 if (!Boolean.TRUE.equals(call(fragment, "isVisible"))) continue;
@@ -202,12 +218,12 @@ public final class NativeMedia {
                 try {
                     if (g == null || src == null || id(actor()) != owner || !Boolean.TRUE.equals(call(field(g, "Y"), "isAttachedToWindow"))) { loading = false; return; }
                     List<Object> fresh = NativeMedia.items(tweets(src));
-                    LinkedHashMap<String,Object> merged = new LinkedHashMap<>();
-                    for (Object item : items) merged.put(key(item), item);
-                    int before = merged.size();
-                    for (Object item : fresh) merged.putIfAbsent(key(item), item);
-                    if (merged.size() > before) {
-                        items = new ArrayList<>(merged.values());
+                    List<Object> merged = MediaSequence.appendNew(items, fresh, item -> {
+                        try { return key(item); }
+                        catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+                    });
+                    if (merged.size() > items.size()) {
+                        items = merged;
                         set(g, "T", ((Number) call(field(g, "Y"), "getCurrentItem")).intValue());
                         updating = true;
                         try { call(g, "I3", new Class<?>[]{List.class, boolean.class}, items, false); }
