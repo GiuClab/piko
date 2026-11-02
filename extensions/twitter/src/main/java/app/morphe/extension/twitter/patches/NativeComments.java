@@ -159,13 +159,16 @@ final class NativeComments {
             Object builder = Class.forName("com.twitter.tweetdetail.g0$a").getConstructor(Bundle.class).newInstance((Object) null);
             stage = "set-native-account";
             NativeMedia.call(builder, "s", new Class<?>[]{Class.forName("com.twitter.util.user.UserIdentifier")}, NativeMedia.actor());
-            stage = "set-native-post-id";
+            stage = "set-native-timeline-tag";
             NativeMedia.call(builder, "t", new Class<?>[]{String.class}, String.valueOf(NativeMedia.id(tweet)));
+            // X validates timeline_arg_tweet_id during build(), so configure the builder first.
+            stage = "prepare-native-required-args";
+            Bundle builderArgs = (Bundle) NativeMedia.field(builder, "a");
+            builderArgs.putParcelable("timeline_arg_contextual_tweet", (Parcelable) tweet);
+            builderArgs.putLong("timeline_arg_tweet_id", NativeMedia.id(tweet));
+            builderArgs.putInt("arg_timeline_type", 14);
             stage = "build-native-args";
             Bundle args = new Bundle((Bundle) NativeMedia.field(NativeMedia.call(builder, "j"), "a"));
-            args.putParcelable("timeline_arg_contextual_tweet", (Parcelable) tweet);
-            args.putLong("timeline_arg_tweet_id", NativeMedia.id(tweet));
-            args.putInt("arg_timeline_type", 14);
             stage = "create-conversation-fragment";
             fragment = Class.forName("com.twitter.tweetdetail.TweetDetailTimelineFragment").getConstructor().newInstance();
             stage = "set-fragment-arguments";
