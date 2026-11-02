@@ -1,7 +1,7 @@
 # v14-based media rebuild
 
 Branch: `fix/v14-media-rebuild`.
-Version: `3.11.0-video-ui.16-dev.1`.
+Current diagnostic version: `3.11.0-video-ui.16-dev.2`.
 Base: the exact v14 compiled source, `3356c987418212b811091c02aa53a55f5ba9c9b4`.
 
 ## Why rebuild
@@ -36,9 +36,17 @@ OptionalMediaGuardTest covers failed class initialization, subsequent NoClassDef
 
 Compilation and device verification must be reported separately. The original APKM is no longer present in the current scratch workspace, so a new APK application/rebuild cannot be claimed for this iteration. Earlier v15 rebuild results do not validate this version. No crash-free guarantee is made.
 
-## Build result
+## Build result (v16-dev.1)
 
 Source: `b9f0fc5709bfc0b50ae07f12ffc851c89300418b`.
 GitHub Actions: https://github.com/GiuClab/piko/actions/runs/41468985193
 Compilation and the gesture, relationship, media-sequence and optional-initialization guard tests passed.
 The build is a development candidate; Android startup and the optional features have not been verified on a device.
+
+## Comments diagnostic (v16-dev.2)
+
+The maintainer reached the player and reported the handled message `NativeComments: In-player comments unavailable`. This does not identify the underlying exception. Version 16-dev.2 adds operation-stage tracking and a dialog with the unwrapped root cause and stack trace. The user can explicitly copy the diagnostic with Copy details; no file permission or PC is needed. No functional comments fix is claimed by this diagnostic build.
+
+Source: `94e9a1381c2643d9e584407729eb22c42ce3988b`.
+Build and existing tests passed: https://github.com/GiuClab/piko/actions/runs/41532424524
+Android runtime and the actual failure cause still require the user's diagnostic.
